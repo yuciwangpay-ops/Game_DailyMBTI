@@ -7,93 +7,118 @@
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
   <style>
-    /* 這裡已經修正乾淨了，移除了奇怪的方塊符號 */
-    body { background-color: #1a1a1a; color: #fff; font-family: 'Noto Sans TC', sans-serif; padding: 20px; }
-    .card { background-color: #2c2c2c; border: 1px solid #444; margin-bottom: 15px; }
-    .btn-custom { width: 100%; margin-top: 10px; padding: 12px; }
+    body { background-color: #121212; color: #e0e0e0; font-family: 'Noto Sans TC', sans-serif; padding: 20px; }
+    .card { background-color: #1e1e1e; border: 1px solid #333; margin-bottom: 20px; border-radius: 12px; }
+    .btn-main { background: linear-gradient(45deg, #8e2de2, #4a00e0); color: white; border: none; width: 100%; padding: 12px; font-weight: bold; }
+    .form-control { background-color: #2c2c2c; border: 1px solid #444; color: #fff; }
+    .form-control:focus { background-color: #333; color: #fff; border-color: #8e2de2; box-shadow: none; }
     .hidden { display: none; }
-    #loading { text-align: center; margin-top: 50px; }
+    #loading { text-align: center; margin-top: 100px; }
   </style>
 </head>
 <body>
 
   <div id="loading">
     <div class="spinner-border text-light" role="status"></div>
-    <p class="mt-2">正在連結資料庫...</p>
-    <small class="text-muted" id="debugMsg">初始化...</small>
+    <p class="mt-3 text-muted">正在同步命運資料庫...</p>
   </div>
 
   <div id="mainContent" class="hidden">
-    <h3 class="mb-4">⚔️ 遊戲控制台</h3>
-    <div class="card p-3">
-        <p>歡迎, <span id="userName">...</span></p>
-        <button class="btn btn-primary btn-custom" onclick="testBackend()">📡 測試後端連線</button>
+    
+    <div class="card p-4">
+      <h4 class="mb-1">⚔️ 建立契約</h4>
+      <p class="text-muted small">你好，<span id="displayUserName">冒險者</span></p>
+      
+      <div class="mb-3">
+        <label for="teamNameInput" class="form-label">為你的隊伍命名</label>
+        <input type="text" class="form-control" id="teamNameInput" placeholder="例如：屠龍特攻隊">
+      </div>
+
+      <button class="btn btn-main rounded-pill" onclick="submitTeam()">✨ 簽署契約 (建立隊伍)</button>
     </div>
+
+    <div id="statusArea" class="mt-3 text-center small text-muted"></div>
   </div>
 
   <script>
     // ==========================================
-    // ⚠️ 設定區 (請記得修改這裡！)
+    // ⚠️ 請填入您的資料
     // ==========================================
-    
-    // 1. 請填入 GAS 部署的網址 (以 exec 結尾)
+    // 1. 這裡填 GAS 網址
     const GAS_API_URL = "https://script.google.com/macros/s/AKfycbw9ZPgiKFPj3iLi5z_3F40oJ2hKgFXFGPEvLfbbklX9oe3wWTiVaB8AnyRWdqrztFbdVA/exec"; 
     
-    // 2. 請填入 LIFF ID
-    const LIFF_ID = "2008941439-M9ODe8F0";
+    // 2. 這裡填 LIFF ID
+    const LIFF_ID = "2008941439-M9ODe8F0"; 
 
-    // ==========================================
-    // 🚀 核心邏輯
-    // ==========================================
-    
+    // 全域變數
+    let userProfile = null;
+
+    // 初始化
     async function main() {
-      const debugEl = document.getElementById('debugMsg');
-      
       try {
-        debugEl.innerText = "正在初始化 LIFF...";
         await liff.init({ liffId: LIFF_ID });
         
         if (!liff.isLoggedIn()) {
-          debugEl.innerText = "使用者未登入，跳轉中...";
           liff.login();
           return;
         }
 
-        const profile = await liff.getProfile();
-        document.getElementById('userName').innerText = profile.displayName;
+        userProfile = await liff.getProfile();
+        document.getElementById('displayUserName').innerText = userProfile.displayName;
         
-        // 顯示主畫面
+        // 切換顯示
         document.getElementById('loading').classList.add('hidden');
         document.getElementById('mainContent').classList.remove('hidden');
 
       } catch (err) {
-        debugEl.innerText = "錯誤: " + err.message;
-        alert("啟動失敗: " + err);
+        alert("系統啟動失敗: " + err);
       }
     }
 
-    async function testBackend() {
-      if(GAS_API_URL.includes("請貼上")) {
-        alert("請先在 GitHub 程式碼中填入 GAS 網址！");
+    // 送出建立隊伍請求
+    async function submitTeam() {
+      const teamName = document.getElementById('teamNameInput').value;
+      const btn = document.querySelector('.btn-main');
+      const status = document.getElementById('statusArea');
+
+      if (!teamName) {
+        alert("請輸入隊伍名稱！");
         return;
       }
 
+      // UI 鎖定
+      btn.disabled = true;
+      btn.innerText = "⏳ 契約簽署中...";
+      status.innerText = "正在呼叫後端...";
+
       try {
-        const profile = await liff.getProfile();
-        // 呼叫 GAS
+        const payload = {
+          action: "create_team",
+          teamName: teamName,
+          userId: userProfile.userId,
+          userName: userProfile.displayName
+        };
+
         const response = await fetch(GAS_API_URL, {
           method: "POST",
-          body: JSON.stringify({ 
-            action: "test_connection", 
-            userId: profile.userId
-          })
+          body: JSON.stringify(payload)
         });
-        
+
         const result = await response.json();
-        alert("後端回應: " + JSON.stringify(result));
-        
+
+        if (result.success) {
+          alert("🎉 成功！" + result.message);
+          status.innerText = "契約已成立: " + result.data.teamId;
+          document.getElementById('teamNameInput').value = ""; // 清空
+        } else {
+          alert("❌ 失敗: " + result.message);
+        }
+
       } catch (e) {
-        alert("連線失敗: " + e);
+        alert("連線錯誤: " + e);
+      } finally {
+        btn.disabled = false;
+        btn.innerText = "✨ 簽署契約 (建立隊伍)";
       }
     }
 
