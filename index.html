@@ -3,134 +3,197 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>PersonaPact 命運契約</title>
+  <title>PersonaPact 遊戲大廳</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
   <style>
     body { background-color: #121212; color: #e0e0e0; font-family: 'Noto Sans TC', sans-serif; padding: 20px; }
-    .card { background-color: #1e1e1e; border: 1px solid #333; margin-bottom: 20px; border-radius: 12px; }
-    .btn-main { background: linear-gradient(45deg, #8e2de2, #4a00e0); color: white; border: none; width: 100%; padding: 12px; font-weight: bold; }
-    .form-control { background-color: #2c2c2c; border: 1px solid #444; color: #fff; }
-    .form-control:focus { background-color: #333; color: #fff; border-color: #8e2de2; box-shadow: none; }
-    .hidden { display: none; }
-    #loading { text-align: center; margin-top: 100px; }
+    .card { background-color: #1e1e1e; border: 1px solid #333; margin-bottom: 15px; border-radius: 12px; }
+    .btn-main { background: linear-gradient(45deg, #8e2de2, #4a00e0); color: white; border: none; width: 100%; }
+    .btn-game { background: linear-gradient(45deg, #11998e, #38ef7d); color: white; border: none; width: 100%; }
+    .status-badge { font-size: 0.8em; padding: 3px 8px; border-radius: 4px; background: #333; }
+    .hidden { display: none !important; }
+    .form-control { background-color: #2c2c2c; border: 1px solid #444; color: #fff; margin-bottom: 10px; }
   </style>
 </head>
 <body>
 
-  <div id="loading">
+  <div id="loading" class="text-center mt-5">
     <div class="spinner-border text-light" role="status"></div>
-    <p class="mt-3 text-muted">正在同步命運資料庫...</p>
+    <p class="mt-2 text-muted">正在讀取契約列表...</p>
   </div>
 
-  <div id="mainContent" class="hidden">
-    
+  <div id="gameListArea" class="hidden">
+    <h4 class="mb-3">📜 我的契約列表</h4>
+    <div id="contractsContainer"></div>
+  </div>
+
+  <div id="setupFormArea" class="hidden">
     <div class="card p-4">
-      <h4 class="mb-1">⚔️ 建立契約</h4>
-      <p class="text-muted small">你好，<span id="displayUserName">冒險者</span></p>
+      <h4 class="mb-3">⚙️ 隊長初始設定</h4>
+      <p class="text-muted small">契約: <span id="setupContractName"></span></p>
       
-      <div class="mb-3">
-        <label for="teamNameInput" class="form-label">為你的隊伍命名</label>
-        <input type="text" class="form-control" id="teamNameInput" placeholder="例如：屠龍特攻隊">
-      </div>
+      <label>隊伍名稱</label>
+      <input type="text" id="inputTeamName" class="form-control" placeholder="例如: 屠龍特攻隊">
+      
+      <label>怪物名稱</label>
+      <input type="text" id="inputEnemy" class="form-control" placeholder="例如: 貪吃惡龍">
+      
+      <label>寶物名稱</label>
+      <input type="text" id="inputTreasure" class="form-control" placeholder="例如: 傳說中的金蛋">
 
-      <button class="btn btn-main rounded-pill" onclick="submitTeam()">✨ 簽署契約 (建立隊伍)</button>
+      <button class="btn btn-main mt-3" onclick="submitSetup()">✨ 啟動遊戲</button>
+      <button class="btn btn-outline-secondary mt-2 w-100" onclick="cancelSetup()">取消</button>
     </div>
-
-    <div id="statusArea" class="mt-3 text-center small text-muted"></div>
   </div>
 
   <script>
     // ==========================================
-    // ⚠️ 請填入您的資料
+    // ⚠️ 設定區
     // ==========================================
-    // 1. 這裡填 GAS 網址
-    const GAS_API_URL = "https://script.google.com/macros/s/AKfycbw3TI1AyohI-DcHQtD8BMXX6mRgl2dSvtpOqNM3-11beU3gOz2JvWACSQjyRmWvAbdofA/exec"; 
-    
-    // 2. 這裡填 LIFF ID
+    const GAS_API_URL = "https://script.google.com/macros/s/AKfycbwPXmVht1iwitTjf7RodX6yvxQ8y_EW4ng4ffLUWmuY0Xs4qU9OLp07DAwok1ELads_/exec"; 
     const LIFF_ID = "2008941439-M9ODe8F0"; 
 
-    // 全域變數
     let userProfile = null;
+    let currentSetupContractId = null; // 暫存正在設定的契約 ID
 
     // 初始化
     async function main() {
       try {
         await liff.init({ liffId: LIFF_ID });
+        if (!liff.isLoggedIn()) { liff.login(); return; }
         
-        if (!liff.isLoggedIn()) {
-          liff.login();
-          return;
-        }
-
         userProfile = await liff.getProfile();
-        document.getElementById('displayUserName').innerText = userProfile.displayName;
-        
-        // 切換顯示
-        document.getElementById('loading').classList.add('hidden');
-        document.getElementById('mainContent').classList.remove('hidden');
+        fetchContracts(); // 取得列表
 
-      } catch (err) {
-        alert("系統啟動失敗: " + err);
-      }
+      } catch (err) { alert("啟動失敗: " + err); }
     }
 
-    // 送出建立隊伍請求
-    async function submitTeam() {
-      const teamName = document.getElementById('teamNameInput').value;
-      
-      // ⚠️ 這裡要取得主程式給的 Contract ID
-      // 為了測試，我們先假設後端查票會給我們 ID，或者先用測試 ID
-      // 這裡您可以暫時寫死，等一下教您怎麼串 "check_ticket"
-      const myContractId = "CONTRACT_FROM_MAIN_PROGRAM"; 
+    // 取得契約列表
+    async function fetchContracts() {
+      try {
+        const response = await fetch(GAS_API_URL, {
+          method: "POST",
+          body: JSON.stringify({ action: "get_user_contracts", userId: userProfile.userId })
+        });
+        const result = await response.json();
 
-      if (!teamName) {
-        alert("請輸入隊伍名稱！");
+        document.getElementById('loading').classList.add('hidden');
+        document.getElementById('gameListArea').classList.remove('hidden');
+
+        if (result.success) {
+          renderList(result.games);
+        } else {
+          document.getElementById('contractsContainer').innerHTML = `<p class="text-danger">${result.message}</p>`;
+        }
+      } catch (e) { alert("連線錯誤: " + e); }
+    }
+
+    // 渲染列表 (核心邏輯)
+    function renderList(games) {
+      const container = document.getElementById('contractsContainer');
+      container.innerHTML = "";
+
+      if (games.length === 0) {
+        container.innerHTML = "<p class="text-muted">您目前沒有 Game_A 的契約。</p>";
         return;
       }
 
-      const btn = document.querySelector('.btn-main');
+      games.forEach(game => {
+        let actionHtml = "";
+
+        // 邏輯判斷區
+        if (game.status === "RUNNING") {
+          // 情況 1: 遊戲進行中 -> 進入遊戲按鈕
+          actionHtml = `<button class="btn btn-game" onclick="enterGame('${game.contractId}')">🎮 進入遊戲</button>`;
+        } else if (game.status === "PENDING") {
+          if (game.role === "Admin") {
+            // 情況 2: 等待中 + 隊長 -> 初始設定按鈕
+            actionHtml = `<button class="btn btn-main" onclick="openSetup('${game.contractId}', '${game.contractName}')">⚙️ 初始設定 (開啟遊戲)</button>`;
+          } else {
+            // 情況 3: 等待中 + 隊員 -> 等待文字
+            actionHtml = `<button class="btn btn-secondary" disabled>⏳ 等待隊長設定中...</button>`;
+          }
+        }
+
+        const card = `
+          <div class="card p-3">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+              <h5 class="m-0">${game.contractName}</h5>
+              <span class="status-badge">${game.status}</span>
+            </div>
+            <p class="small text-muted mb-3">ID: ${game.contractId} | 角色: ${game.role}</p>
+            ${actionHtml}
+          </div>
+        `;
+        container.innerHTML += card;
+      });
+    }
+
+    // 開啟設定表單
+    function openSetup(contractId, name) {
+      currentSetupContractId = contractId;
+      document.getElementById('setupContractName').innerText = name;
+      document.getElementById('gameListArea').classList.add('hidden');
+      document.getElementById('setupFormArea').classList.remove('hidden');
+    }
+
+    // 取消設定
+    function cancelSetup() {
+      document.getElementById('gameListArea').classList.remove('hidden');
+      document.getElementById('setupFormArea').classList.add('hidden');
+    }
+
+    // 送出設定 (初始化遊戲)
+    async function submitSetup() {
+      const teamName = document.getElementById('inputTeamName').value;
+      const enemy = document.getElementById('inputEnemy').value;
+      const treasure = document.getElementById('inputTreasure').value;
+
+      if (!teamName || !enemy || !treasure) {
+        alert("請填寫所有欄位！");
+        return;
+      }
+
+      // 鎖定按鈕
+      const btn = document.querySelector('#setupFormArea .btn-main');
+      btn.innerText = "處理中...";
       btn.disabled = true;
-      btn.innerText = "⏳ 建立中...";
 
       try {
         const payload = {
           action: "create_team",
-          teamName: teamName,
           userId: userProfile.userId,
-          contractId: myContractId, // 傳送 Contract ID
-          userName: userProfile.displayName
+          contractId: currentSetupContractId, // 傳送當前選擇的契約 ID
+          teamName: teamName,
+          enemyName: enemy,
+          treasureName: treasure
         };
 
         const response = await fetch(GAS_API_URL, {
           method: "POST",
           body: JSON.stringify(payload)
         });
-
         const result = await response.json();
 
         if (result.success) {
           alert("🎉 " + result.message);
-          document.getElementById('teamNameInput').value = ""; 
+          location.reload(); // 重新整理頁面，應該會變成 RUNNING 狀態
         } else {
-          alert("❌ 失敗: " + result.message);
+          alert("❌ " + result.message);
+          btn.disabled = false;
+          btn.innerText = "✨ 啟動遊戲";
         }
-
-      } catch (e) {
-        alert("連線錯誤: " + e);
-      } finally {
-        btn.disabled = false;
-        btn.innerText = "✨ 簽署契約 (建立隊伍)";
-      }
+      } catch (e) { alert("錯誤: " + e); }
     }
-    
 
-
+    // 進入遊戲 (暫時)
+    function enterGame(id) {
+      alert("即將進入遊戲儀表板！\nContractID: " + id);
+      // 未來這裡可以轉址到 game_dashboard.html
+    }
 
     main();
   </script>
-
-
-
 </body>
 </html>
