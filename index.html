@@ -45,7 +45,7 @@
     // ⚠️ 請填入您的資料
     // ==========================================
     // 1. 這裡填 GAS 網址
-    const GAS_API_URL = "https://script.google.com/macros/s/AKfycbw9ZPgiKFPj3iLi5z_3F40oJ2hKgFXFGPEvLfbbklX9oe3wWTiVaB8AnyRWdqrztFbdVA/exec"; 
+    const GAS_API_URL = "https://script.google.com/macros/s/AKfycbw3TI1AyohI-DcHQtD8BMXX6mRgl2dSvtpOqNM3-11beU3gOz2JvWACSQjyRmWvAbdofA/exec"; 
     
     // 2. 這裡填 LIFF ID
     const LIFF_ID = "2008941439-M9ODe8F0"; 
@@ -78,24 +78,27 @@
     // 送出建立隊伍請求
     async function submitTeam() {
       const teamName = document.getElementById('teamNameInput').value;
-      const btn = document.querySelector('.btn-main');
-      const status = document.getElementById('statusArea');
+      
+      // ⚠️ 這裡要取得主程式給的 Contract ID
+      // 為了測試，我們先假設後端查票會給我們 ID，或者先用測試 ID
+      // 這裡您可以暫時寫死，等一下教您怎麼串 "check_ticket"
+      const myContractId = "CONTRACT_FROM_MAIN_PROGRAM"; 
 
       if (!teamName) {
         alert("請輸入隊伍名稱！");
         return;
       }
 
-      // UI 鎖定
+      const btn = document.querySelector('.btn-main');
       btn.disabled = true;
-      btn.innerText = "⏳ 契約簽署中...";
-      status.innerText = "正在呼叫後端...";
+      btn.innerText = "⏳ 建立中...";
 
       try {
         const payload = {
           action: "create_team",
           teamName: teamName,
           userId: userProfile.userId,
+          contractId: myContractId, // 傳送 Contract ID
           userName: userProfile.displayName
         };
 
@@ -107,9 +110,8 @@
         const result = await response.json();
 
         if (result.success) {
-          alert("🎉 成功！" + result.message);
-          status.innerText = "契約已成立: " + result.data.teamId;
-          document.getElementById('teamNameInput').value = ""; // 清空
+          alert("🎉 " + result.message);
+          document.getElementById('teamNameInput').value = ""; 
         } else {
           alert("❌ 失敗: " + result.message);
         }
@@ -121,8 +123,14 @@
         btn.innerText = "✨ 簽署契約 (建立隊伍)";
       }
     }
+    
+
+
 
     main();
   </script>
+
+
+
 </body>
 </html>
