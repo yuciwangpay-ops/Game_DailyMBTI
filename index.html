@@ -3,10 +3,11 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>PersonaPact 命運契約 github </title>
+  <title>PersonaPact 命運契約</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
   <style>
+    /* 這裡已經修正乾淨了，移除了奇怪的方塊符號 */
     body { background-color: #1a1a1a; color: #fff; font-family: 'Noto Sans TC', sans-serif; padding: 20px; }
     .card { background-color: #2c2c2c; border: 1px solid #444; margin-bottom: 15px; }
     .btn-custom { width: 100%; margin-top: 10px; padding: 12px; }
@@ -23,7 +24,7 @@
   </div>
 
   <div id="mainContent" class="hidden">
-    <h3 class="mb-4">⚔️ 遊戲控制台v2 </h3>
+    <h3 class="mb-4">⚔️ 遊戲控制台</h3>
     <div class="card p-3">
         <p>歡迎, <span id="userName">...</span></p>
         <button class="btn btn-primary btn-custom" onclick="testBackend()">📡 測試後端連線</button>
@@ -32,14 +33,14 @@
 
   <script>
     // ==========================================
-    // ⚠️ 設定區 (請修改這裡)
+    // ⚠️ 設定區 (請記得修改這裡！)
     // ==========================================
     
-    // 1. 填入剛剛 GAS 部署拿到的網址
-    const GAS_API_URL = "https://script.google.com/macros/s/AKfycbw9ZPgiKFPj3iLi5z_3F40oJ2hKgFXFGPEvLfbbklX9oe3wWTiVaB8AnyRWdqrztFbdVA/exec"; 
+    // 1. 請填入 GAS 部署的網址 (以 exec 結尾)
+    const GAS_API_URL = "請貼上您的_GAS_API_URL"; 
     
-    // 2. 填入您的 LIFF ID
-    const LIFF_ID = "2008941439-M9ODe8F0;
+    // 2. 請填入 LIFF ID
+    const LIFF_ID = "請貼上您的_LIFF_ID";
 
     // ==========================================
     // 🚀 核心邏輯
@@ -71,23 +72,19 @@
       }
     }
 
-    // 呼叫 GAS 後端
     async function testBackend() {
       if(GAS_API_URL.includes("請貼上")) {
-        alert("請先去 GitHub 編輯 index.html 填入 GAS 網址！");
+        alert("請先在 GitHub 程式碼中填入 GAS 網址！");
         return;
       }
 
       try {
         const profile = await liff.getProfile();
-        // 使用 fetch 發送 POST 請求給 GAS
-        // mode: 'no-cors' 或者是利用 GAS 的特性，通常直接 fetch 即可
-        // GAS Web App 回傳的是 302 Redirect，fetch 會自動跟隨
-        
+        // 呼叫 GAS
         const response = await fetch(GAS_API_URL, {
           method: "POST",
           body: JSON.stringify({ 
-            action: "test_connection", // 或是 "createTeam"
+            action: "test_connection", 
             userId: profile.userId
           })
         });
@@ -100,7 +97,6 @@
       }
     }
 
-    // 啟動
     main();
   </script>
 </body>
