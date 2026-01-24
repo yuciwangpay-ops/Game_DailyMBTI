@@ -89,13 +89,14 @@
       } catch (e) { alert("連線錯誤: " + e); }
     }
 
-    // 渲染列表 (核心邏輯)
+   // 渲染列表 (修復版)
     function renderList(games) {
       const container = document.getElementById('contractsContainer');
       container.innerHTML = "";
 
       if (games.length === 0) {
-        container.innerHTML = "<p class="text-muted">您目前沒有 Game_A 的契約。</p>";
+        // 👇 修正了這裡的引號問題
+        container.innerHTML = '<p class="text-muted text-center">您目前沒有 Game_A 的契約。</p>';
         return;
       }
 
@@ -104,14 +105,11 @@
 
         // 邏輯判斷區
         if (game.status === "RUNNING") {
-          // 情況 1: 遊戲進行中 -> 進入遊戲按鈕
           actionHtml = `<button class="btn btn-game" onclick="enterGame('${game.contractId}')">🎮 進入遊戲</button>`;
         } else if (game.status === "PENDING") {
           if (game.role === "Admin") {
-            // 情況 2: 等待中 + 隊長 -> 初始設定按鈕
             actionHtml = `<button class="btn btn-main" onclick="openSetup('${game.contractId}', '${game.contractName}')">⚙️ 初始設定 (開啟遊戲)</button>`;
           } else {
-            // 情況 3: 等待中 + 隊員 -> 等待文字
             actionHtml = `<button class="btn btn-secondary" disabled>⏳ 等待隊長設定中...</button>`;
           }
         }
