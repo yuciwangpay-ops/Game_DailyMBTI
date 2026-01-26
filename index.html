@@ -362,20 +362,48 @@
     // ==========================================
     // 🆕 戰鬥功能區 (Game Core)
     // ==========================================
-
     // 進入戰鬥畫面
     async function enterGame(contractId, contractName) {
-      // 切換畫面
       document.getElementById('gameListArea').classList.add('hidden');
       document.getElementById('battleArea').classList.remove('hidden');
+      
+      window.currentContractId = contractId; 
+      
+      // 1. 介面先顯示讀取中，但稍微好看一點
+      document.getElementById('monsterName').innerText = "正在分析敵人數據..."; 
+      document.getElementById('monsterName').style.color = "#888"; // 暫時灰色
 
-      window.currentContractId = contractId; // 儲存全域變數
-
-      // 設定暫時標題 (之後等攻擊回傳真正的怪物名)
-      document.getElementById('monsterName').innerText = "偵測反應中...";
-
-      // 讀取錢包
+      // 2. 平行執行：讀取錢包 + 讀取怪物狀態
       fetchWallet();
+      fetchGameState(contractId);
+    }
+
+    // 🆕 新增：讀取怪物狀態 (不用攻擊也能看)
+    async function fetchGameState(contractId) {
+      try {
+        const response = await fetch(GAS_API_URL, {
+          method: "POST",
+          body: JSON.stringify({ action: "get_game_state", contractId: contractId })
+        });
+        const result = await response.json();
+        
+        if (result.success) {
+          // 更新名字
+          const mName = document.getElementById('monsterName');
+          mName.innerText = result.monsterName;
+          mName.style.color = "#e0e0e0"; // 恢復白色
+
+          // 更新血條
+          const currentHp = result.currentHp;
+          const maxHp = result.maxHp || 100;
+          const pct = Math.max(0, (currentHp / maxHp) * 100);
+          
+          document.getElementById('hpBar').style.width = pct + "%";
+          document.getElementById('hpText').innerText = `${currentHp} / ${maxHp}`;
+        }
+      } catch (e) {
+        console.error("狀態讀取失敗", e);
+      }
     }
 
     // 查詢票卷
