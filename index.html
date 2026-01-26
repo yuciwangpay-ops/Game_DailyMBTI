@@ -432,12 +432,15 @@
     }
 
     // 發動攻擊
+  // 發動攻擊 (修復版：包含特效 + 數值更新 + 按鈕解鎖)
     async function performAttack() {
       const btn = document.getElementById('btnAttack');
-      btn.disabled = true; // 防止連點
-
+      
+      // 1. 點擊瞬間：鎖住按鈕，避免重複扣票
+      btn.disabled = true; 
+      
       // 震動回饋 (如果支援)
-      if (navigator.vibrate) navigator.vibrate(50);
+      if(navigator.vibrate) navigator.vibrate(50);
 
       try {
         const payload = {
@@ -454,52 +457,75 @@
         const result = await response.json();
 
         if (result.success) {
-
-          // 1. 顯示戰鬥敘述 (有顏色的故事)
+          // ==========================
+          // 🎨 1. 戰鬥特效與文字
+          // ==========================
           const logDiv = document.getElementById('battleLog');
-          logDiv.innerHTML = result.message; // 使用 innerHTML 支援 emoji
-          logDiv.style.color = "#fff"; // 預設白色
-
-          // 2. 根據攻擊類型做特效
+          logDiv.innerHTML = result.message; 
+          logDiv.style.color = "#fff"; 
+          
           const monsterImg = document.querySelector('.monster-img');
-
+          
+          // 根據攻擊類型改變顏色與震動
           if (result.data.hitType === "CRITICAL") {
-            logDiv.style.color = "#ff4757"; // 紅字
-            logDiv.style.fontSize = "1.1em";
+            logDiv.style.color = "#ff4757"; // 紅字 (爆擊)
             logDiv.style.fontWeight = "bold";
-            // 怪物劇烈搖晃特效
-            monsterImg.style.animation = "shake 0.5s";
-            if (navigator.vibrate) navigator.vibrate([100, 50, 100]); // 手機震動兩下
+            monsterImg.style.animation = "shake 0.5s"; // 大搖晃
+            if(navigator.vibrate) navigator.vibrate([100, 50, 100]);
           } else if (result.data.hitType === "BLOCK") {
-            logDiv.style.color = "#ced6e0"; // 灰字
-            // 怪物只微微動一下
-            monsterImg.style.animation = "shake 0.2s";
+            logDiv.style.color = "#ced6e0"; // 灰字 (格擋)
+            monsterImg.style.animation = "shake 0.2s"; // 小搖晃
           } else {
-            // 普通搖晃
-            monsterImg.style.animation = "shake 0.3s";
-            if (navigator.vibrate) navigator.vibrate(50);
+            monsterImg.style.animation = "shake 0.3s"; // 普通搖晃
+            if(navigator.vibrate) navigator.vibrate(50);
           }
-
-          // 重置動畫 (讓下次攻擊還能搖)
+          // 重置動畫
           setTimeout(() => { monsterImg.style.animation = ""; }, 500);
 
-          // ... (原本的更新票數和血條代碼保持不變) ...
-          document.getElementById('displayTickets').innerText = result.data.tickets;
-          document.getElementById('monsterName').innerText = result.data.monsterName;
-          // ...
+          // ==========================
+          // 📊 2. 更新血量 (上次漏掉的關鍵！)
+          // ==========================
+          const currentHp = result.data.remainingHp;
+          // 如果後端沒回傳 MaxHP，預設 100，避免計算錯誤
+          const maxHp = result.data.maxHp || 100; 
+          
+          // 計算血條百分比 (不能小於 0%)
+          const pct = Math.max(0, (currentHp / maxHp) * 100);
+          
+          document.getElementById('hpBar').style.width = pct + "%";
+          document.getElementById('hpText').innerText = `${currentHp} / ${maxHp}`;
+          
+          // 更新怪物名稱 (以防萬一)
+          if(result.data.monsterName) {
+             document.getElementById('monsterName').innerText = result.data.monsterName;
+          }
 
+          // ==========================
+          // 🎫 3. 更新票卷與解鎖按鈕 (這也是漏掉的！)
+          // ==========================
+          document.getElementById('displayTickets').innerText = result.data.tickets;
+
+          if(result.data.tickets <= 0) {
+            btn.innerText = "⛔️ 票卷不足";
+            // 票不夠了，繼續鎖住 (btn.disabled = true)
+          } else {
+            // 還有票，把按鈕解鎖！
+            btn.disabled = false; 
+          }
 
         } else {
+          // 失敗的情況 (例如系統錯誤)
           alert("❌ " + result.message);
-          btn.disabled = false;
+          btn.disabled = false; // 記得解鎖讓玩家重試
         }
 
       } catch (e) {
+        console.error(e);
         alert("連線錯誤");
-        btn.disabled = false;
+        btn.disabled = false; // 斷線也要解鎖
       }
     }
-
+    
     main();
   </script>
 </body>
