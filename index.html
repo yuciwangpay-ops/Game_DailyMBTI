@@ -236,6 +236,24 @@
     </div>
   </div>
 
+  <div class="card mt-4 p-3" style="border: 1px solid #444; background: #222;">
+    <h5 class="text-warning">🔥 冒險日誌</h5>
+
+    <div class="mb-3 p-2"
+      style="background: #333; border-radius: 8px; font-size: 0.9em; line-height: 1.5; color: #ccc;">
+      <span id="storyText">正在讀取冒險紀錄...</span>
+    </div>
+
+    <hr style="border-color: #555;">
+
+    <h6 class="mb-2 text-info">🤔 今日抉擇</h6>
+    <p id="questionText" class="mb-3 small">...</p>
+
+    <div id="mbtiOptionsArea" class="d-grid gap-2">
+    </div>
+    <p id="mbtiStatus" class="text-center text-success mt-2 small hidden">✅ 已完成今日選擇</p>
+  </div>
+
   <div id="battleArea" class="hidden">
     <div class="battle-panel position-relative">
       <div class="monster-img">🦖</div>
@@ -411,7 +429,6 @@
       fetchGameState(contractId);
     }
 
-    // 🆕 新增：讀取怪物狀態 (不用攻擊也能看)
     async function fetchGameState(contractId) {
       try {
         const response = await fetch(GAS_API_URL, {
@@ -421,22 +438,34 @@
         const result = await response.json();
 
         if (result.success) {
-          // 更新名字
-          const mName = document.getElementById('monsterName');
-          mName.innerText = result.monsterName;
-          mName.style.color = "#e0e0e0"; // 恢復白色
-
-          // 更新血條
-          const currentHp = result.currentHp;
-          const maxHp = result.maxHp || 100;
-          const pct = Math.max(0, (currentHp / maxHp) * 100);
-
+          // 1. 更新戰鬥數據 (原本的)
+          document.getElementById('monsterName').innerText = result.monsterName;
+          const pct = Math.max(0, (result.currentHp / result.maxHp) * 100);
           document.getElementById('hpBar').style.width = pct + "%";
-          document.getElementById('hpText').innerText = `${currentHp} / ${maxHp}`;
+          document.getElementById('hpText').innerText = `${result.currentHp} / ${result.maxHp}`;
+
+          // 2. 🆕 更新故事
+          document.getElementById('storyText').innerText = result.yesterdaySummary;
+
+          // 3. 🆕 更新題目與按鈕
+          document.getElementById('questionText').innerText = result.mbti.question;
+
+          const optionsDiv = document.getElementById('mbtiOptionsArea');
+          optionsDiv.innerHTML = ""; // 清空舊按鈕
+
+          // 儲存目前的題目類型供送出時使用
+          window.currentQuestionType = result.mbti.type;
+
+          // 產生 4 個按鈕
+          result.mbti.options.forEach((optText, index) => {
+            const btn = document.createElement('button');
+            btn.className = "btn btn-outline-info text-start btn-sm"; // 樣式
+            btn.innerText = ["A. ", "B. ", "C. ", "D. "][index] + optText;
+            btn.onclick = () => submitChoice(optText, index, btn);
+            optionsDiv.appendChild(btn);
+          });
         }
-      } catch (e) {
-        console.error("狀態讀取失敗", e);
-      }
+      } catch (e) { console.error("狀態讀取失敗", e); }
     }
 
     // 查詢票卷
@@ -556,6 +585,44 @@
         console.error(e);
         alert("連線錯誤");
         btn.disabled = false; // 斷線也要解鎖
+      }
+    }
+
+    // 🆕 送出 MBTI 選擇
+    async function submitChoice(choiceText, index, btnElement) {
+      // 簡單的視覺回饋：鎖定所有按鈕
+      const allBtns = document.querySelectorAll('#mbtiOptionsArea button');
+      allBtns.forEach(b => b.disabled = true);
+      btnElement.className = "btn btn-info text-white text-start btn-sm"; // 變色表示選中
+
+      try {
+        const payload = {
+          action: "submit_mbti",
+          userId: userProfile.userId,
+          contractId: window.currentContractId,
+          choice: choiceText,
+          choiceIndex: index,
+          questionType: window.currentQuestionType
+        };
+
+        const response = await fetch(GAS_API_URL, {
+          method: "POST",
+          body: JSON.stringify(payload)
+        });
+        const result = await response.json();
+
+        if (result.success) {
+          document.getElementById('mbtiOptionsArea').classList.add('hidden'); // 隱藏按鈕
+          const status = document.getElementById('mbtiStatus');
+          status.innerText = "✅ 您的選擇已記錄！(" + choiceText + ")";
+          status.classList.remove('hidden');
+        } else {
+          alert("記錄失敗: " + result.message);
+          allBtns.forEach(b => b.disabled = false); // 解鎖重試
+        }
+      } catch (e) {
+        alert("連線錯誤");
+        allBtns.forEach(b => b.disabled = false);
       }
     }
 
