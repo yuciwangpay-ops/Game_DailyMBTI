@@ -208,7 +208,7 @@
 </head>
 
 <body>
-<div id="loading" class="text-center mt-5">
+  <div id="loading" class="text-center mt-5">
     <div class="spinner-border text-light" role="status"></div>
     <p class="mt-2 text-muted">正在連線至 PersonaPact...</p>
   </div>
@@ -222,7 +222,7 @@
     <div class="card p-4">
       <h4 class="mb-3">⚙️ 隊長初始設定</h4>
       <p class="text-muted small">契約: <span id="setupContractName"></span></p>
-      
+
       <label>隊伍名稱</label>
       <input type="text" id="inputTeamName" class="form-control" placeholder="例如: 屠龍特攻隊">
       <label>怪物名稱</label>
@@ -239,7 +239,7 @@
     <div class="battle-panel position-relative">
       <div class="monster-img">🦖</div>
       <h3 id="monsterName">載入中...</h3>
-      
+
       <div class="hp-bar-bg">
         <div id="hpBar" class="hp-bar-fill" style="width: 100%;"></div>
       </div>
@@ -260,22 +260,36 @@
       </div>
     </div>
 
-    <div class="card mt-4 p-3" style="border: 1px solid #444; background: #222;">
+    <div class="card mt-4 p-3" style="border: 1px solid #444; background: #222; position: relative; overflow: hidden;">
       <h5 class="text-warning">🔥 冒險日誌</h5>
-      
-      <div class="mb-3 p-2" style="background: #333; border-radius: 8px; font-size: 0.9em; line-height: 1.5; color: #ccc;">
-        <span id="storyText">正在讀取冒險紀錄...</span>
+
+      <div id="lockedLayer" class="text-center py-4">
+        <div style="font-size: 3rem;">🔒</div>
+        <p class="text-muted mt-2">
+          怪物守護著今天的秘密...<br>
+          <span class="text-warning small">消耗票卷進行攻擊以解鎖內容</span>
+        </p>
       </div>
 
-      <hr style="border-color: #555;">
+      <div id="unlockedContent" class="hidden">
 
-      <h6 class="mb-2 text-info">🤔 今日抉擇</h6>
-      <p id="questionText" class="mb-3 small">...</p>
+        <div class="mb-3 p-2"
+          style="background: #333; border-radius: 8px; font-size: 0.9em; line-height: 1.5; color: #ccc;">
+          <span id="storyText">正在讀取冒險紀錄...</span>
+        </div>
 
-      <div id="mbtiOptionsArea" class="d-grid gap-2"></div>
-      <p id="mbtiStatus" class="text-center text-success mt-2 small hidden">✅ 已完成今日選擇</p>
+        <hr style="border-color: #555;">
+
+        <h6 class="mb-2 text-info">🤔 今日抉擇</h6>
+        <p id="questionText" class="mb-3 small">...</p>
+
+        <div id="mbtiOptionsArea" class="d-grid gap-2">
+        </div>
+        <p id="mbtiStatus" class="text-center text-success mt-2 small hidden">✅ 已完成今日選擇</p>
+
+      </div>
     </div>
-    
+
     <button class="btn btn-outline-light mt-3 w-100" onclick="location.reload()">🔙 回到列表</button>
   </div>Ｆ
 
@@ -441,9 +455,10 @@
           document.getElementById('hpBar').style.width = pct + "%";
           document.getElementById('hpText').innerText = `${result.currentHp} / ${result.maxHp}`;
 
-          // 2. 🆕 更新故事
+          // 2. 更新故事 (背景偷偷執行，使用者還看不到，因為被 lockedLayer 擋住了)
           document.getElementById('storyText').innerText = result.yesterdaySummary;
-
+          document.getElementById('questionText').innerText = result.mbti.question;
+          
           // 3. 🆕 更新題目與按鈕
           document.getElementById('questionText').innerText = result.mbti.question;
 
@@ -491,97 +506,63 @@
     }
 
     // 發動攻擊
-    // 發動攻擊 (修復版：包含特效 + 數值更新 + 按鈕解鎖)
     async function performAttack() {
       const btn = document.getElementById('btnAttack');
+      if (btn.disabled) return; // 防止重複點擊
 
-      // 1. 點擊瞬間：鎖住按鈕，避免重複扣票
+      // 簡單的特效
       btn.disabled = true;
+      btn.innerText = "⚔️ 攻擊中...";
 
-      // 震動回饋 (如果支援)
-      if (navigator.vibrate) navigator.vibrate(50);
+      // 模擬震動 (如果支援)
+      if (navigator.vibrate) navigator.vibrate(200);
 
       try {
-        const payload = {
-          action: "perform_attack",
-          userId: userProfile.userId,
-          userName: userProfile.displayName,
-          contractId: window.currentContractId
-        };
-
         const response = await fetch(GAS_API_URL, {
           method: "POST",
-          body: JSON.stringify(payload)
+          body: JSON.stringify({
+            action: "attack",
+            userId: userProfile.userId,
+            contractId: window.currentContractId
+          })
         });
         const result = await response.json();
 
         if (result.success) {
-          // ==========================
-          // 🎨 1. 戰鬥特效與文字
-          // ==========================
-          const logDiv = document.getElementById('battleLog');
-          logDiv.innerHTML = result.message;
-          logDiv.style.color = "#fff";
-
-          const monsterImg = document.querySelector('.monster-img');
-
-          // 根據攻擊類型改變顏色與震動
-          if (result.data.hitType === "CRITICAL") {
-            logDiv.style.color = "#ff4757"; // 紅字 (爆擊)
-            logDiv.style.fontWeight = "bold";
-            monsterImg.style.animation = "shake 0.5s"; // 大搖晃
-            if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
-          } else if (result.data.hitType === "BLOCK") {
-            logDiv.style.color = "#ced6e0"; // 灰字 (格擋)
-            monsterImg.style.animation = "shake 0.2s"; // 小搖晃
-          } else {
-            monsterImg.style.animation = "shake 0.3s"; // 普通搖晃
-            if (navigator.vibrate) navigator.vibrate(50);
-          }
-          // 重置動畫
-          setTimeout(() => { monsterImg.style.animation = ""; }, 500);
-
-          // ==========================
-          // 📊 2. 更新血量 (上次漏掉的關鍵！)
-          // ==========================
-          const currentHp = result.data.remainingHp;
-          // 如果後端沒回傳 MaxHP，預設 100，避免計算錯誤
-          const maxHp = result.data.maxHp || 100;
-
-          // 計算血條百分比 (不能小於 0%)
-          const pct = Math.max(0, (currentHp / maxHp) * 100);
-
+          // 1. 更新血條 UI
+          document.getElementById('hpText').innerText = `${result.remainingHp} / ${result.maxHp}`;
+          const pct = Math.max(0, (result.remainingHp / result.maxHp) * 100);
           document.getElementById('hpBar').style.width = pct + "%";
-          document.getElementById('hpText').innerText = `${currentHp} / ${maxHp}`;
 
-          // 更新怪物名稱 (以防萬一)
-          if (result.data.monsterName) {
-            document.getElementById('monsterName').innerText = result.data.monsterName;
-          }
+          // 2. 更新文字與按鈕
+          document.getElementById('battleLog').innerText = `💥 造成 ${result.damage} 點傷害！`;
+          document.getElementById('displayTickets').innerText = result.remainingTickets;
 
-          // ==========================
-          // 🎫 3. 更新票卷與解鎖按鈕 (這也是漏掉的！)
-          // ==========================
-          document.getElementById('displayTickets').innerText = result.data.tickets;
+          // ==========================================
+          // 🔓 關鍵修改：攻擊成功，解鎖故事區！
+          // ==========================================
+          document.getElementById('lockedLayer').classList.add('hidden');   // 隱藏鎖頭
+          document.getElementById('unlockedContent').classList.remove('hidden'); // 顯示內容
+          // ==========================================
 
-          if (result.data.tickets <= 0) {
-            btn.innerText = "⛔️ 票卷不足";
-            // 票不夠了，繼續鎖住 (btn.disabled = true)
-          } else {
-            // 還有票，把按鈕解鎖！
+          if (result.remainingTickets > 0) {
+            btn.innerText = "⚔️ 再次攻擊";
             btn.disabled = false;
+          } else {
+            btn.innerText = "明天再來";
+            // 沒票了保持 disabled
           }
 
         } else {
-          // 失敗的情況 (例如系統錯誤)
-          alert("❌ " + result.message);
-          btn.disabled = false; // 記得解鎖讓玩家重試
+          alert("攻擊失敗: " + result.message);
+          btn.innerText = "⚔️ 攻擊怪獸";
+          btn.disabled = false;
         }
-
       } catch (e) {
         console.error(e);
         alert("連線錯誤");
-        btn.disabled = false; // 斷線也要解鎖
+        btn.innerText = "⚔️ 攻擊怪獸";
+        btn.disabled = false;
       }
     }
 
