@@ -208,8 +208,7 @@
 </head>
 
 <body>
-
-  <div id="loading" class="text-center mt-5">
+<div id="loading" class="text-center mt-5">
     <div class="spinner-border text-light" role="status"></div>
     <p class="mt-2 text-muted">正在連線至 PersonaPact...</p>
   </div>
@@ -223,7 +222,7 @@
     <div class="card p-4">
       <h4 class="mb-3">⚙️ 隊長初始設定</h4>
       <p class="text-muted small">契約: <span id="setupContractName"></span></p>
-
+      
       <label>隊伍名稱</label>
       <input type="text" id="inputTeamName" class="form-control" placeholder="例如: 屠龍特攻隊">
       <label>怪物名稱</label>
@@ -236,29 +235,11 @@
     </div>
   </div>
 
-  <div class="card mt-4 p-3" style="border: 1px solid #444; background: #222;">
-    <h5 class="text-warning">🔥 冒險日誌</h5>
-
-    <div class="mb-3 p-2"
-      style="background: #333; border-radius: 8px; font-size: 0.9em; line-height: 1.5; color: #ccc;">
-      <span id="storyText">正在讀取冒險紀錄...</span>
-    </div>
-
-    <hr style="border-color: #555;">
-
-    <h6 class="mb-2 text-info">🤔 今日抉擇</h6>
-    <p id="questionText" class="mb-3 small">...</p>
-
-    <div id="mbtiOptionsArea" class="d-grid gap-2">
-    </div>
-    <p id="mbtiStatus" class="text-center text-success mt-2 small hidden">✅ 已完成今日選擇</p>
-  </div>
-
   <div id="battleArea" class="hidden">
     <div class="battle-panel position-relative">
       <div class="monster-img">🦖</div>
       <h3 id="monsterName">載入中...</h3>
-
+      
       <div class="hp-bar-bg">
         <div id="hpBar" class="hp-bar-fill" style="width: 100%;"></div>
       </div>
@@ -277,11 +258,27 @@
       <div class="ticket-count mt-4">
         🎫 剩餘票卷: <span id="displayTickets">...</span>
       </div>
-
     </div>
 
+    <div class="card mt-4 p-3" style="border: 1px solid #444; background: #222;">
+      <h5 class="text-warning">🔥 冒險日誌</h5>
+      
+      <div class="mb-3 p-2" style="background: #333; border-radius: 8px; font-size: 0.9em; line-height: 1.5; color: #ccc;">
+        <span id="storyText">正在讀取冒險紀錄...</span>
+      </div>
+
+      <hr style="border-color: #555;">
+
+      <h6 class="mb-2 text-info">🤔 今日抉擇</h6>
+      <p id="questionText" class="mb-3 small">...</p>
+
+      <div id="mbtiOptionsArea" class="d-grid gap-2"></div>
+      <p id="mbtiStatus" class="text-center text-success mt-2 small hidden">✅ 已完成今日選擇</p>
+    </div>
+    
     <button class="btn btn-outline-light mt-3 w-100" onclick="location.reload()">🔙 回到列表</button>
-  </div>
+  </div>Ｆ
+
   <script>
     // ==========================================
     // ⚠️ 請記得換成新版 GAS 網址！
