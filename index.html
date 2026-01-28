@@ -517,9 +517,9 @@
       } catch (e) { console.error(e); }
     }
 
-    // ⚔️ 發動攻擊 (新版邏輯：攻擊成功 -> 顯示選項)
+    // ⚔️ 發動攻擊 (更新：多傳名字給後端)
     async function performAttack() {
-      const btn = document.getElementById('btnAction'); // 注意 ID 改了
+      const btn = document.getElementById('btnAction');
       if (btn.disabled) return;
 
       btn.disabled = true;
@@ -533,9 +533,11 @@
           body: JSON.stringify({
             action: "attack",
             userId: userProfile.userId,
-            contractId: window.currentContractId
+            contractId: window.currentContractId,
+            userName: userProfile.displayName // 🆕 新增這一行：把名字傳過去！
           })
         });
+
         const result = await response.json();
 
         if (result.success) {
@@ -566,6 +568,9 @@
         btn.disabled = false;
       }
     }
+
+    // ⚔️ 發動攻擊 (更新：多傳名字給後端)
+
     // 🆕 送出 MBTI 選擇
     async function submitChoice(choiceText, index, btnElement) {
       // 簡單的視覺回饋：鎖定所有按鈕
