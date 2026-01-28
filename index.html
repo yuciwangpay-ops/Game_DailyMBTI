@@ -450,6 +450,9 @@
 
           document.getElementById('storyText').innerText = result.yesterdaySummary;
           document.getElementById('questionText').innerText = result.mbti.question;
+
+          document.getElementById('displayTickets').innerText = result.userTickets;
+
           window.currentQuestionType = result.mbti.type;
 
           // UI 元素
