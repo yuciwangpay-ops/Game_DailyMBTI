@@ -430,44 +430,63 @@
 
     async function fetchGameState(contractId) {
       try {
+        // 🆕 這裡記得要多傳 userId 給後端
         const response = await fetch(GAS_API_URL, {
           method: "POST",
-          body: JSON.stringify({ action: "get_game_state", contractId: contractId })
+          body: JSON.stringify({
+            action: "get_game_state",
+            contractId: contractId,
+            userId: userProfile.userId // 👈 加上這行
+          })
         });
         const result = await response.json();
 
         if (result.success) {
-          // 更新怪物資訊
+          // 1. 更新怪物與故事 (基本資料)
           document.getElementById('monsterName').innerText = result.monsterName;
           const pct = Math.max(0, (result.currentHp / result.maxHp) * 100);
           document.getElementById('hpBar').style.width = pct + "%";
           document.getElementById('hpText').innerText = `${result.currentHp} / ${result.maxHp}`;
 
-          // 更新故事與題目 (直接顯示)
           document.getElementById('storyText').innerText = result.yesterdaySummary;
           document.getElementById('questionText').innerText = result.mbti.question;
-
-          // 初始化按鈕狀態
-          const actionBtn = document.getElementById('btnAction');
-          const optionsDiv = document.getElementById('mbtiOptionsArea');
-
-          // 重置 UI：顯示大按鈕，隱藏選項
-          actionBtn.classList.remove('hidden');
-          actionBtn.disabled = false;
-          actionBtn.innerText = "⚡️ 選擇下一步行動 (需 1 🎫)";
-          optionsDiv.classList.add('hidden');
-          optionsDiv.innerHTML = ""; // 清空舊按鈕
-
           window.currentQuestionType = result.mbti.type;
 
-          // 預先生成選項按鈕 (但先藏起來)
-          result.mbti.options.forEach((optText, index) => {
-            const btn = document.createElement('button');
-            btn.className = "btn btn-outline-info text-start btn-sm py-2";
-            btn.innerText = ["A. ", "B. ", "C. ", "D. "][index] + optText;
-            btn.onclick = () => submitChoice(optText, index, btn);
-            optionsDiv.appendChild(btn);
-          });
+          // UI 元素
+          const actionBtn = document.getElementById('btnAction');
+          const optionsDiv = document.getElementById('mbtiOptionsArea');
+          const statusText = document.getElementById('mbtiStatus');
+
+          // ==========================================
+          // 🚦 判斷狀態：今天玩過了嗎？
+          // ==========================================
+          if (result.hasPlayed) {
+            // A. 如果玩過了 -> 顯示「已完成」狀態
+            actionBtn.classList.add('hidden');       // 藏起行動按鈕
+            optionsDiv.classList.add('hidden');      // 藏起選項
+
+            statusText.innerText = "✅ 您今日已選擇：\n" + result.myChoice;
+            statusText.classList.remove('hidden');   // 顯示結果文字
+
+          } else {
+            // B. 如果還沒玩 -> 顯示「準備行動」狀態
+            actionBtn.classList.remove('hidden');
+            actionBtn.disabled = false;
+            actionBtn.innerText = "⚡️ 選擇下一步行動 (需 1 🎫)";
+
+            optionsDiv.classList.add('hidden'); // 選項先藏著，等攻擊後才開
+            statusText.classList.add('hidden');
+
+            // 預先生成選項按鈕 (給等一下攻擊後用)
+            optionsDiv.innerHTML = "";
+            result.mbti.options.forEach((optText, index) => {
+              const btn = document.createElement('button');
+              btn.className = "btn btn-outline-info text-start btn-sm py-2";
+              btn.innerText = ["A. ", "B. ", "C. ", "D. "][index] + optText;
+              btn.onclick = () => submitChoice(optText, index, btn);
+              optionsDiv.appendChild(btn);
+            });
+          }
 
         }
       } catch (e) { console.error("狀態讀取失敗", e); }
