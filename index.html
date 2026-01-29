@@ -476,10 +476,24 @@
             statusText.classList.remove('hidden');   // 顯示結果文字
 
           } else {
-            // B. 如果還沒玩 -> 顯示「準備行動」狀態
+            // B. 如果還沒玩 -> 準備顯示行動按鈕
             actionBtn.classList.remove('hidden');
-            actionBtn.disabled = false;
-            actionBtn.innerText = "⚡️ 選擇下一步行動 (需 1 🎫)";
+            // 👇 🆕 修改這裡：加入票卷判斷邏輯
+            if (result.userTickets > 0) {
+              // 有票：可以按
+              actionBtn.disabled = false;
+              actionBtn.innerText = "⚡️ 選擇下一步行動 (需 1 🎫)";
+              // 確保樣式是漂亮的亮色
+              actionBtn.classList.remove('btn-secondary');
+              actionBtn.classList.add('btn-main');
+            } else {
+              // 沒票：鎖住按鈕，變灰色
+              actionBtn.disabled = true;
+              actionBtn.innerText = "⛔️ 票卷不足 (請先完成習慣)";
+              // 樣式改成灰色
+              actionBtn.classList.remove('btn-main');
+              actionBtn.classList.add('btn-secondary');
+            }
 
             optionsDiv.classList.add('hidden'); // 選項先藏著，等攻擊後才開
             statusText.classList.add('hidden');
@@ -497,31 +511,6 @@
 
         }
       } catch (e) { console.error("狀態讀取失敗", e); }
-    }
-
-    // 查詢票卷
-    async function fetchWallet() {
-      try {
-        const response = await fetch(GAS_API_URL, {
-          method: "POST",
-          body: JSON.stringify({ action: "get_wallet", userId: userProfile.userId })
-        });
-        const result = await response.json();
-
-        if (result.success) {
-          const tickets = result.tickets;
-          document.getElementById('displayTickets').innerText = tickets;
-
-          const btn = document.getElementById('btnAttack');
-          if (tickets > 0) {
-            btn.disabled = false;
-            btn.innerText = "⚔️ 發動攻擊 (消耗 1 票)";
-          } else {
-            btn.disabled = true;
-            btn.innerText = "⛔️ 票卷不足";
-          }
-        }
-      } catch (e) { console.error(e); }
     }
 
     // ⚔️ 發動攻擊 (更新：多傳名字給後端)
