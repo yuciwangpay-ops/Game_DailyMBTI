@@ -452,6 +452,9 @@
           document.getElementById('questionText').innerText = result.mbti.question;
 
           document.getElementById('displayTickets').innerText = result.userTickets;
+          // 🆕 偵錯專用：請把這一行加上去！
+          // 這會把 "c9c3...2762" 或 "707c...c870" 顯示在票卷數量後面
+          document.getElementById('displayTickets').innerText += ` (ID: ${contractId.slice(-4)})`;
 
           window.currentQuestionType = result.mbti.type;
 
