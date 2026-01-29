@@ -452,8 +452,10 @@
           document.getElementById('questionText').innerText = result.mbti.question;
 
           document.getElementById('displayTickets').innerText = result.userTickets;
-          document.getElementById('displayTickets').innerText += ` (ID: ${contractId.slice(-4)})`;
+          // document.getElementById('displayTickets').innerText += ` (ID: ${contractId.slice(-4)})`;
           // 🆕 數據到了，把整行票卷顯示出來！
+          // 👇 暫時加上這一行偵錯，真相馬上大白！
+          document.getElementById('displayTickets').innerText += ` [${result.debugInfo}]`;
           document.getElementById('ticketContainer').classList.remove('hidden');
           window.currentQuestionType = result.mbti.type;
 
