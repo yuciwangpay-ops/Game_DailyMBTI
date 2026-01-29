@@ -249,8 +249,8 @@
       <p id="battleLog" class="mb-2" style="min-height: 24px; font-weight: bold; color: #ff5e5e;">
       </p>
 
-      <div class="ticket-count mb-3">
-        🎫 剩餘票卷: <span id="displayTickets">...</span>
+      <div id="ticketContainer" class="ticket-count mb-3 hidden">
+        🎫 剩餘票卷: <span id="displayTickets">0</span>
       </div>
     </div>
 
@@ -452,10 +452,9 @@
           document.getElementById('questionText').innerText = result.mbti.question;
 
           document.getElementById('displayTickets').innerText = result.userTickets;
-          // 🆕 偵錯專用：請把這一行加上去！
-          // 這會把 "c9c3...2762" 或 "707c...c870" 顯示在票卷數量後面
           document.getElementById('displayTickets').innerText += ` (ID: ${contractId.slice(-4)})`;
-
+          // 🆕 數據到了，把整行票卷顯示出來！
+          document.getElementById('ticketContainer').classList.remove('hidden');
           window.currentQuestionType = result.mbti.type;
 
           // UI 元素
