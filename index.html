@@ -222,13 +222,6 @@
     <div class="card p-4">
       <h4 class="mb-3">⚙️ 隊長初始設定</h4>
       <p class="text-muted small">契約: <span id="setupContractName"></span></p>
-
-      <label>隊伍名稱</label>
-      <input type="text" id="inputTeamName" class="form-control" placeholder="例如: 屠龍特攻隊">
-      <label>怪物名稱</label>
-      <input type="text" id="inputEnemy" class="form-control" placeholder="例如: 貪吃惡龍">
-      <label>寶物名稱</label>
-      <input type="text" id="inputTreasure" class="form-control" placeholder="例如: 傳說中的金蛋">
       <label class="mt-2">故事風格</label>
       <select id="inputTheme" class="form-control">
         <option value="王道熱血奇幻 (預設)">⚔️ 王道熱血奇幻 (勇者 vs 魔王)</option>
@@ -238,6 +231,13 @@
         <option value="無厘頭爆笑喜劇">🤣 爆笑喜劇 (吐槽役 vs 笨蛋反派)</option>
         <option value="末日殭屍生存">🧟 末日生存 (倖存者 vs 變異體)</option>
       </select>
+      <label>隊伍名稱</label>
+      <input type="text" id="inputTeamName" class="form-control" placeholder="例如: 屠龍特攻隊">
+      <label>我想對抗</label>
+      <input type="text" id="inputEnemy" class="form-control" placeholder="例如: 貪吃惡龍">
+      <label>我想獲得</label>
+      <input type="text" id="inputTreasure" class="form-control" placeholder="例如: 傳說中的金蛋">
+
       <button class="btn btn-main mt-3" onclick="submitSetup()">✨ 啟動遊戲</button>
       <button class="btn btn-outline-secondary mt-2 w-100" onclick="cancelSetup()">取消</button>
     </div>
