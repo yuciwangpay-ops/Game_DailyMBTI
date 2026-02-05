@@ -229,7 +229,15 @@
       <input type="text" id="inputEnemy" class="form-control" placeholder="例如: 貪吃惡龍">
       <label>寶物名稱</label>
       <input type="text" id="inputTreasure" class="form-control" placeholder="例如: 傳說中的金蛋">
-
+      <label class="mt-2">故事風格</label>
+      <select id="inputTheme" class="form-control">
+        <option value="王道熱血奇幻 (預設)">⚔️ 王道熱血奇幻 (勇者 vs 魔王)</option>
+        <option value="賽博龐克科幻">🤖 賽博龐克 (駭客 vs 企業巨獸)</option>
+        <option value="日式校園異能">🏫 日式校園 (學生會 vs 不良少年)</option>
+        <option value="克蘇魯神話驚悚">🐙 克蘇魯驚悚 (調查員 vs 古神)</option>
+        <option value="無厘頭爆笑喜劇">🤣 爆笑喜劇 (吐槽役 vs 笨蛋反派)</option>
+        <option value="末日殭屍生存">🧟 末日生存 (倖存者 vs 變異體)</option>
+      </select>
       <button class="btn btn-main mt-3" onclick="submitSetup()">✨ 啟動遊戲</button>
       <button class="btn btn-outline-secondary mt-2 w-100" onclick="cancelSetup()">取消</button>
     </div>
@@ -377,6 +385,8 @@
       const teamName = document.getElementById('inputTeamName').value;
       const enemy = document.getElementById('inputEnemy').value;
       const treasure = document.getElementById('inputTreasure').value;
+      // 👇 新增這行：抓取選擇的風格
+      const theme = document.getElementById('inputTheme').value; 
 
       if (!teamName || !enemy || !treasure) { alert("請填寫完整！"); return; }
 
@@ -391,23 +401,12 @@
           contractId: currentSetupContractId,
           teamName: teamName,
           enemyName: enemy,
-          treasureName: treasure
+          treasureName: treasure,
+          storyTheme: theme // 👈 記得把這個傳給後端
         };
 
         const response = await fetch(GAS_API_URL, { method: "POST", body: JSON.stringify(payload) });
-        const result = await response.json();
-
-        if (result.success) {
-          alert("🎉 " + result.message);
-          location.reload();
-        } else {
-          alert("❌ " + result.message);
-          btn.disabled = false;
-          btn.innerText = "✨ 啟動遊戲";
-        }
-      } catch (e) { alert("錯誤: " + e); }
-    }
-
+        // ... (後面保持不變)
     // ==========================================
     // 🆕 戰鬥功能區 (Game Core)
     // ==========================================
