@@ -313,9 +313,14 @@
       try {
         await liff.init({ liffId: LIFF_ID });
 
-        if (!liff.isLoggedIn() && !liff.isInClient()) {
+        //if (!liff.isLoggedIn() && !liff.isInClient()) {
+        //  liff.login({ redirectUri: window.location.href });
+        //  return; // 只有在外部瀏覽器需要跳轉登入
+        //}
+
+        if (!liff.isLoggedIn()) {
           liff.login({ redirectUri: window.location.href });
-          return; // 只有在外部瀏覽器需要跳轉登入
+          return;
         }
         userProfile = await liff.getProfile();
         //alert("測試：遊戲 LIFF 初始化成功！\nID: " + userProfile.userId);
