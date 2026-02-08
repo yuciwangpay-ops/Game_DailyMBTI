@@ -312,16 +312,13 @@
     async function main() {
       try {
         await liff.init({ liffId: LIFF_ID });
-        
-        // 1. 檢查是否登入
-        if (!liff.isLoggedIn()) { 
-            // ⚠️ 重要：設定登入後跳轉回原本的網址 (保留 ?contractId=xxx 參數)
-            liff.login({ redirectUri: window.location.href }); 
-            return; 
+
+        if (!liff.isLoggedIn() && !liff.isInClient()) {
+          liff.login({ redirectUri: window.location.href });
+          return; // 只有在外部瀏覽器需要跳轉登入
         }
-
         userProfile = await liff.getProfile();
-
+        alert("測試：遊戲 LIFF 初始化成功！\nID: " + userProfile.userId);
         // ==========================================
         // 🆕 新增：檢查網址有沒有帶 contractId
         // ==========================================
@@ -330,17 +327,16 @@
 
         if (targetContractId) {
           console.log("偵測到指定契約，跳過大廳直接進入...", targetContractId);
-          
+
           // 直接呼叫進入遊戲的函式
           // 第二個參數 (contractName) 暫時給空字串即可，因為 fetchGameState 會再去抓正確的怪獸名稱覆蓋掉
-          enterGame(targetContractId, "Loading..."); 
-          
+          enterGame(targetContractId, "Loading...");
+
         } else {
           // 沒有 ID，代表是正常開啟，顯示大廳列表
           console.log("無指定契約，載入列表");
           fetchContracts();
         }
-
       } catch (err) { alert("啟動失敗: " + err); }
     }
 
@@ -365,7 +361,7 @@
       } catch (e) { alert("連線錯誤: " + e); }
     }
 
-// 渲染列表
+    // 渲染列表
     function renderList(games) {
       const container = document.getElementById('contractsContainer');
       container.innerHTML = "";
@@ -377,7 +373,7 @@
 
       games.forEach(game => {
         let actionHtml = "";
-        
+
         // 判斷按鈕狀態
         if (game.status === "RUNNING") {
           // 正在進行中 -> 顯示「進入遊戲」
@@ -472,8 +468,8 @@
 
       // 1. 介面初始化：顯示載入中
       document.getElementById('monsterName').innerText = "正在分析敵人數據...";
-      document.getElementById('monsterName').style.color = "#888"; 
-      
+      document.getElementById('monsterName').style.color = "#888";
+
       // 因為我們把 HP 放到同一行了，初始時先清空或顯示 ???
       document.getElementById('hpText').innerText = "(HP: ??? / ???)";
       document.getElementById('hpBar').style.width = "100%"; // 先補滿比較好看
@@ -488,7 +484,7 @@
     }
 
 
-async function fetchGameState(contractId) {
+    async function fetchGameState(contractId) {
       try {
         const response = await fetch(GAS_API_URL, {
           method: "POST",
@@ -504,7 +500,7 @@ async function fetchGameState(contractId) {
           // ===============================================
           // 🆕 修改重點：HP 格式整合 & 票券乾淨顯示
           // ===============================================
-          
+
           // 1. 更新怪物名稱與顏色
           document.getElementById('monsterName').innerText = result.monsterName;
           document.getElementById('monsterName').style.color = ""; // 恢復原本顏色
@@ -512,14 +508,14 @@ async function fetchGameState(contractId) {
           // 2. 更新血量條與文字
           const pct = Math.max(0, (result.currentHp / result.maxHp) * 100);
           document.getElementById('hpBar').style.width = pct + "%";
-          
+
           // 👇 這裡改成您要的格式 (HP: 1000 / 1000)
-          document.getElementById('hpText').innerText = `(HP: ${result.currentHp} / ${result.maxHp})`; 
+          document.getElementById('hpText').innerText = `(HP: ${result.currentHp} / ${result.maxHp})`;
 
           // 3. 更新故事與題目
           document.getElementById('storyText').innerText = result.yesterdaySummary;
           document.getElementById('questionText').innerText = result.mbti.question;
-          
+
           // 4. 記錄題目類型 (給等一下送出選擇用)
           window.currentQuestionType = result.mbti.type;
 
@@ -536,14 +532,14 @@ async function fetchGameState(contractId) {
 
           if (result.hasPlayed) {
             // A. 如果玩過了 -> 顯示結果
-            actionBtn.classList.add('hidden');       
-            optionsDiv.classList.add('hidden');      
+            actionBtn.classList.add('hidden');
+            optionsDiv.classList.add('hidden');
             statusText.innerText = "✅ 您今日已選擇：\n" + result.myChoice;
-            statusText.classList.remove('hidden');   
+            statusText.classList.remove('hidden');
           } else {
             // B. 如果還沒玩 -> 顯示按鈕
             actionBtn.classList.remove('hidden');
-            
+
             if (result.userTickets > 0) {
               actionBtn.disabled = false;
               actionBtn.innerText = "⚡️ 選擇下一步行動 (需 1 🎫)";
@@ -556,7 +552,7 @@ async function fetchGameState(contractId) {
               actionBtn.classList.add('btn-secondary');
             }
 
-            optionsDiv.classList.add('hidden'); 
+            optionsDiv.classList.add('hidden');
             statusText.classList.add('hidden');
 
             // 生成選項按鈕
@@ -571,13 +567,13 @@ async function fetchGameState(contractId) {
           }
 
         } else {
-            // 如果讀取失敗
-            alert("讀取失敗：" + result.message);
+          // 如果讀取失敗
+          alert("讀取失敗：" + result.message);
         }
       } catch (e) { console.error("狀態讀取失敗", e); }
     }
 
-// ⚔️ 發動攻擊
+    // ⚔️ 發動攻擊
     async function performAttack() {
       const btn = document.getElementById('btnAction');
       if (btn.disabled) return;
@@ -594,7 +590,7 @@ async function fetchGameState(contractId) {
             action: "attack",
             userId: userProfile.userId,
             contractId: window.currentContractId,
-            userName: userProfile.displayName 
+            userName: userProfile.displayName
           })
         });
 
@@ -604,10 +600,10 @@ async function fetchGameState(contractId) {
           // ===============================================
           // 🆕 修改重點：攻擊後的數據更新
           // ===============================================
-          
+
           // 1. 更新血量文字 (HP: 剩餘 / 最大)
           document.getElementById('hpText').innerText = `(HP: ${result.remainingHp} / ${result.maxHp})`;
-          
+
           // 2. 更新血量條
           const pct = Math.max(0, (result.remainingHp / result.maxHp) * 100);
           document.getElementById('hpBar').style.width = pct + "%";
@@ -619,8 +615,8 @@ async function fetchGameState(contractId) {
           // ===============================================
           // 切換介面：隱藏大按鈕，顯示 4 個選項
           // ===============================================
-          btn.classList.add('hidden'); 
-          document.getElementById('mbtiOptionsArea').classList.remove('hidden'); 
+          btn.classList.add('hidden');
+          document.getElementById('mbtiOptionsArea').classList.remove('hidden');
 
         } else {
           alert("行動失敗: " + result.message);
