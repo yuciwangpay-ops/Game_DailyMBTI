@@ -309,46 +309,31 @@
     let currentContractId = null; // 戰鬥時用的 ID
 
 
-// 初始化
+  // ==========================================
+    // 1. 修改後的 main：不再盲目進入，而是傳遞 ID 給 fetchContracts 去判斷
+    // ==========================================
     async function main() {
       try {
-        // 1. LIFF 初始化
         await liff.init({ liffId: LIFF_ID });
 
-        // 2. 檢查是否登入
-        // (如果沒登入，就去登入，並且設定 redirectUri 為當前網址，這樣參數才不會不見)
         if (!liff.isLoggedIn()) {
           liff.login({ redirectUri: window.location.href });
           return;
         }
 
-        // 3. 取得使用者資料
         userProfile = await liff.getProfile();
-        // alert("測試：遊戲 LIFF 初始化成功！\nID: " + userProfile.userId);
 
-        // ==========================================
-        // 🆕 新增：檢查網址有沒有帶 contractId
-        // ==========================================
+        // 偵測網址參數
         const urlParams = new URLSearchParams(window.location.search);
         const targetContractId = urlParams.get('contractId');
 
         if (targetContractId) {
-          console.log("偵測到指定契約，跳過大廳直接進入...", targetContractId);
-
-          // 👇👇👇【關鍵修改】手動關掉 Loading 轉圈圈 👇👇👇
-          // 因為我們跳過了 fetchContracts (原本是在那裡面關掉的)，所以這裡要自己手動關
-          document.getElementById('loading').classList.add('hidden');
-          // 👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆
-
-          // 直接呼叫進入遊戲的函式
-          // 第二個參數 (contractName) 暫時給空字串即可，因為 fetchGameState 會再去抓正確的怪獸名稱覆蓋掉
-          enterGame(targetContractId, "Loading...");
-
+          console.log("偵測到指定 ID，準備檢查狀態...", targetContractId);
+          // 📢 改動：不直接 enterGame，而是呼叫 fetchContracts 並把 ID 傳進去
+          fetchContracts(targetContractId);
         } else {
-          // 沒有 ID，代表是正常開啟，顯示大廳列表
-          // (fetchContracts 裡面原本就有寫關閉 loading，所以這裡不用動)
-          console.log("無指定契約，載入列表");
-          fetchContracts();
+          console.log("無指定 ID，正常載入列表");
+          fetchContracts(); // 沒參數就是正常載入
         }
 
       } catch (err) { 
@@ -356,8 +341,10 @@
       }
     }
 
-    // 取得契約列表
-    async function fetchContracts() {
+    // ==========================================
+    // 2. 修改後的 fetchContracts：負責分流 (Auto-Routing)
+    // ==========================================
+    async function fetchContracts(autoOpenId = null) {
       try {
         const response = await fetch(GAS_API_URL, {
           method: "POST",
@@ -365,15 +352,54 @@
         });
         const result = await response.json();
 
-        document.getElementById('loading').classList.add('hidden');
-        document.getElementById('gameListArea').classList.remove('hidden');
-
+        // 無論如何，先準備好列表 (在背景渲染)
         if (result.success) {
           renderList(result.games);
         } else {
           document.getElementById('contractsContainer').innerHTML = `<p class="text-danger">${result.message}</p>`;
         }
-      } catch (e) { alert("連線錯誤: " + e); }
+
+        // 🛑 關鍵分流邏輯
+        if (autoOpenId && result.success) {
+          // 在回傳的列表中，尋找目標契約
+          const targetGame = result.games.find(g => g.contractId === autoOpenId);
+
+          if (targetGame) {
+            // 🎯 找到了！根據狀態決定去哪
+            document.getElementById('loading').classList.add('hidden'); // 關掉轉圈圈
+
+            if (targetGame.status === "RUNNING") {
+              // A. 遊戲已開始 -> 進戰鬥
+              console.log("狀態 RUNNING -> 進入遊戲");
+              enterGame(targetGame.contractId, targetGame.contractName);
+            } else {
+              // B. 遊戲未開始 -> 判斷身分
+              if (targetGame.role === "Admin") {
+                // B-1. 我是隊長 -> 進設定頁
+                console.log("狀態 PENDING (隊長) -> 初始設定");
+                openSetup(targetGame.contractId, targetGame.contractName);
+              } else {
+                // B-2. 我是隊員 -> 顯示提示並回列表
+                alert("⏳ 隊長尚未完成「初始設定」，請稍後再來！");
+                document.getElementById('gameListArea').classList.remove('hidden');
+              }
+            }
+          } else {
+            // 找不到 (可能是 ID 錯了或沒權限)
+            alert("❌ 找不到該契約資料，請確認您是否已加入。");
+            document.getElementById('loading').classList.add('hidden');
+            document.getElementById('gameListArea').classList.remove('hidden');
+          }
+        } else {
+          // 正常開啟 (沒有 ID)，直接顯示列表
+          document.getElementById('loading').classList.add('hidden');
+          document.getElementById('gameListArea').classList.remove('hidden');
+        }
+
+      } catch (e) { 
+        alert("連線錯誤: " + e); 
+        document.getElementById('loading').classList.add('hidden'); // 發生錯誤也要記得關 loading
+      }
     }
 
     // 渲染列表
