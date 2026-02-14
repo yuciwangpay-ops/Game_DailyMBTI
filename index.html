@@ -8,23 +8,27 @@
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
   <style>
-    /* 基礎樣式 */
+    /* =========================================
+       1. 基礎設定
+       ========================================= */
     body {
       background-color: #121212;
       color: #e0e0e0;
       font-family: 'Noto Sans TC', sans-serif;
       padding: 20px;
+      padding-bottom: 50px;
     }
 
+    .hidden {
+      display: none !important;
+    }
+
+    /* 卡片樣式 (列表與設定用) */
     .card {
       background-color: #1e1e1e;
       border: 1px solid #333;
       margin-bottom: 15px;
       border-radius: 12px;
-    }
-
-    .hidden {
-      display: none !important;
     }
 
     .form-control {
@@ -56,15 +60,108 @@
       background: #333;
     }
 
-    .ticket-count {
-      font-size: 1.1em;
-      color: #ffd700;
-      font-weight: bold;
-      border: 1px dashed #ffd700;
-      padding: 2px 10px;
-      border-radius: 8px;
-      display: inline-block;
+    /* =========================================
+       2. 森林背景遊戲盤面樣式 (核心修改)
+       ========================================= */
+    
+    /* 容器：限制最大寬度，保持比例 */
+    .game-board-container {
+      position: relative;
+      width: 100%;
+      max-width: 600px; /* 電腦版限制寬度 */
+      margin: 0 auto;   /* 置中 */
     }
+
+    /* 背景圖片：讓它撐滿容器 */
+    .game-bg-img {
+      width: 100%;
+      display: block;
+      border-radius: 20px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    }
+
+    /* 通用定位樣式：所有文字框的基礎 */
+    .overlay-box {
+      position: absolute;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      padding: 5px;
+      font-weight: bold;
+      line-height: 1.3;
+      word-break: break-word; /* 防止文字太長破版 */
+    }
+
+    /* (A) 上方故事區 (白色長方框) */
+    .story-overlay {
+      top: 6%;
+      left: 22%;
+      width: 56%;
+      height: 18%;
+      font-size: 0.8rem;     /* 字體小一點以免塞不下 */
+      overflow-y: auto;      /* 文字太長可以捲動 */
+      color: #5d4037;        /* 深咖啡色 */
+      align-items: flex-start; /* 文字靠上對齊 */
+      padding-top: 10px;
+    }
+
+    /* (B) 中間問題區 (中央大圓) */
+    .question-overlay {
+      top: 35%;
+      left: 36%;
+      width: 28%;
+      height: 28%;
+      font-size: 0.85rem;
+      color: #d84315; /* 顯眼的橘紅色 */
+      padding: 10px;
+    }
+
+    /* (C) 選項按鈕通用樣式 (四個小圓) */
+    .option-btn-overlay {
+      width: 17%;
+      height: 17%;
+      font-size: 0.75rem; /* 選項字體 */
+      border-radius: 50%; /* 圓形感應區 */
+      cursor: pointer;
+      background: rgba(255, 255, 255, 0.1); /* 微微的白色背景增加可讀性 */
+      border: none;
+      color: #333;
+      transition: transform 0.1s, opacity 0.2s;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    }
+
+    .option-btn-overlay:active {
+      transform: scale(0.95); /* 點擊縮小 */
+    }
+
+    .option-btn-overlay:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      background-color: #888; /* 票券不足變灰 */
+      color: #ddd;
+    }
+
+    /* 📍 四個選項座標 (根據圖片微調) */
+    .opt-A { top: 27%; left: 11%; }  /* 左上 (粉紅) */
+    .opt-B { top: 27%; right: 11%; } /* 右上 (綠色) */
+    .opt-C { top: 62%; left: 21%; }  /* 左下 (黃色) */
+    .opt-D { top: 62%; right: 21%; } /* 右下 (紫色) */
+
+    /* 懸浮的票券顯示 (右上角) */
+    .floating-ticket {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      background: rgba(0, 0, 0, 0.7);
+      color: #ffd700;
+      padding: 5px 12px;
+      border-radius: 20px;
+      font-size: 0.9em;
+      z-index: 10;
+      border: 1px solid #ffd700;
+    }
+
   </style>
 </head>
 
@@ -85,12 +182,12 @@
       <p class="text-muted small">契約: <span id="setupContractName"></span></p>
       <label class="mt-2">故事風格</label>
       <select id="inputTheme" class="form-control">
-        <option value="王道熱血奇幻 (預設)">⚔️ 王道熱血奇幻 (勇者 vs 魔王)</option>
-        <option value="賽博龐克科幻">🤖 賽博龐克 (駭客 vs 企業巨獸)</option>
-        <option value="日式校園異能">🏫 日式校園 (學生會 vs 不良少年)</option>
-        <option value="克蘇魯神話驚悚">🐙 克蘇魯驚悚 (調查員 vs 古神)</option>
-        <option value="無厘頭爆笑喜劇">🤣 爆笑喜劇 (吐槽役 vs 笨蛋反派)</option>
-        <option value="末日殭屍生存">🧟 末日生存 (倖存者 vs 變異體)</option>
+        <option value="王道熱血奇幻 (預設)">⚔️ 王道熱血奇幻</option>
+        <option value="賽博龐克科幻">🤖 賽博龐克</option>
+        <option value="日式校園異能">🏫 日式校園</option>
+        <option value="克蘇魯神話驚悚">🐙 克蘇魯驚悚</option>
+        <option value="無厘頭爆笑喜劇">🤣 爆笑喜劇</option>
+        <option value="末日殭屍生存">🧟 末日生存</option>
       </select>
       <label>隊伍名稱</label>
       <input type="text" id="inputTeamName" class="form-control" placeholder="例如: 屠龍特攻隊">
@@ -106,46 +203,52 @@
 
 
   <div id="battleArea" class="hidden">
-
-    <div class="card mt-3 p-3" style="border: 1px solid #444; background: #222;">
-
-      <div class="d-flex justify-content-between align-items-center mb-3">
-        <h5 class="text-warning m-0">🔥 冒險日誌</h5>
-        <div id="ticketContainer" class="ticket-count hidden">
-          🎫 剩餘票卷: <span id="displayTickets">0</span>
-        </div>
+    
+    <div class="game-board-container">
+      
+      <img src="img/Gemini_4sel_forest.png" class="game-bg-img" alt="Game Board">
+      
+      <div id="ticketContainer" class="floating-ticket hidden">
+        🎫 <span id="displayTickets">0</span>
       </div>
 
-      <div class="mb-3 p-2"
-        style="background: #333; border-radius: 8px; font-size: 0.9em; line-height: 1.6; color: #ddd;">
-        <span id="storyText">正在讀取冒險紀錄...</span>
+      <div id="storyText" class="overlay-box story-overlay">
+        正在讀取冒險故事...
       </div>
 
-      <hr style="border-color: #555;">
-
-      <h6 class="mb-2 text-info">🤔 接下來該怎麼做？</h6>
-      <p id="questionText" class="mb-4 small" style="font-size: 1em;">...</p>
-
-      <div id="mbtiOptionsArea" class="d-grid gap-2 hidden">
+      <div id="questionText" class="overlay-box question-overlay">
+        ...
       </div>
 
-      <p id="mbtiStatus" class="text-center text-success mt-2 small hidden">✅ 已完成今日選擇</p>
+      <button id="btnOptA" class="overlay-box option-btn-overlay opt-A" onclick="handleOptionClick(0)">A</button>
+      <button id="btnOptB" class="overlay-box option-btn-overlay opt-B" onclick="handleOptionClick(1)">B</button>
+      <button id="btnOptC" class="overlay-box option-btn-overlay opt-C" onclick="handleOptionClick(2)">C</button>
+      <button id="btnOptD" class="overlay-box option-btn-overlay opt-D" onclick="handleOptionClick(3)">D</button>
+
     </div>
-    <button class="btn btn-outline-light mt-4 w-100" onclick="backToList()">🔙 回到列表</button>
+
+    <p id="mbtiStatus" class="text-center text-success mt-3 hidden" style="font-weight:bold; font-size: 1.1em;">
+      ✅ 已完成今日選擇
+    </p>
+    
+    <button class="btn btn-outline-light mt-3 w-100" onclick="backToList()">🔙 回到列表</button>
   </div>
+
 
   <script>
     // ==========================================
-    // ⚠️ 請記得換成新版 GAS 網址！
+    // ⚠️ 設定區：請確認 GAS 網址與 LIFF ID
     // ==========================================
     const GAS_API_URL = "https://script.google.com/macros/s/AKfycbwVFtnp58L98sIVcoqf60ZpU6vqVmblk-eDcD3l7Hi-PjGWPtHVhKwe0pzIbisfB4ge/exec";
     const LIFF_ID = "2008941439-M9ODe8F0";
 
+    // 全域變數
     let userProfile = null;
     let currentSetupContractId = null;
-    let currentContractId = null;
+    let currentContractId = null; 
+    let currentOptionsData = []; // 暫存選項內容
 
-    // 1. 主程式
+    // 1. 初始化與主程式
     async function main() {
       try {
         await liff.init({ liffId: LIFF_ID });
@@ -157,6 +260,7 @@
 
         userProfile = await liff.getProfile();
 
+        // 偵測網址參數
         const urlParams = new URLSearchParams(window.location.search);
         const targetContractId = urlParams.get('contractId');
 
@@ -165,7 +269,7 @@
           fetchContracts(targetContractId);
         } else {
           console.log("無指定 ID，正常載入列表");
-          fetchContracts();
+          fetchContracts(); 
         }
 
       } catch (err) {
@@ -188,18 +292,19 @@
           document.getElementById('contractsContainer').innerHTML = `<p class="text-danger">${result.message}</p>`;
         }
 
+        // 自動跳轉邏輯
         if (autoOpenId && result.success) {
           const targetGame = result.games.find(g => g.contractId === autoOpenId);
 
           if (targetGame) {
-            document.getElementById('loading').classList.add('hidden');
+            document.getElementById('loading').classList.add('hidden'); 
 
             if (targetGame.status === "RUNNING") {
-              console.log("狀態 RUNNING -> 進入遊戲");
+              // 遊戲進行中 -> 進遊戲
               enterGame(targetGame.contractId, targetGame.contractName);
             } else {
+              // 遊戲未開始 -> 判斷身份
               if (targetGame.role === "Admin") {
-                console.log("狀態 PENDING (隊長) -> 初始設定");
                 openSetup(targetGame.contractId, targetGame.contractName);
               } else {
                 alert("⏳ 隊長尚未完成「初始設定」，請稍後再來！");
@@ -207,11 +312,12 @@
               }
             }
           } else {
-            alert("❌ 找不到該契約資料，請確認您是否已加入。");
+            alert("❌ 找不到該契約資料，或您未加入。");
             document.getElementById('loading').classList.add('hidden');
             document.getElementById('gameListArea').classList.remove('hidden');
           }
         } else {
+          // 正常顯示列表
           document.getElementById('loading').classList.add('hidden');
           document.getElementById('gameListArea').classList.remove('hidden');
         }
@@ -222,7 +328,7 @@
       }
     }
 
-    // 渲染列表
+    // 渲染契約列表
     function renderList(games) {
       const container = document.getElementById('contractsContainer');
       container.innerHTML = "";
@@ -257,7 +363,7 @@
       });
     }
 
-    // 設定功能
+    // --- 設定功能區 ---
     function openSetup(contractId, name) {
       currentSetupContractId = contractId;
       document.getElementById('setupContractName').innerText = name;
@@ -290,7 +396,7 @@
           teamName: teamName,
           enemyName: enemy,
           treasureName: treasure,
-          storyTheme: theme
+          storyTheme: theme 
         };
 
         const response = await fetch(GAS_API_URL, { method: "POST", body: JSON.stringify(payload) });
@@ -298,7 +404,7 @@
 
         if (result.success) {
           alert("🎉 " + result.message);
-          location.reload();
+          location.reload(); 
         } else {
           alert("❌ " + result.message);
           btn.disabled = false;
@@ -312,25 +418,33 @@
     }
 
     // ==========================================
-    // 🆕 戰鬥功能區 (已修正：移除怪獸操作)
+    // 🆕 核心遊戲區 (圖片背景版)
     // ==========================================
+    
+    // 進入遊戲畫面
     async function enterGame(contractId, contractName) {
       document.getElementById('gameListArea').classList.add('hidden');
       document.getElementById('battleArea').classList.remove('hidden');
 
       window.currentContractId = contractId;
 
-      // 初始化介面 (只重置文字，不操作不存在的元素)
+      // 初始化 UI 文字
       document.getElementById('ticketContainer').classList.add('hidden');
       document.getElementById('storyText').innerText = "正在讀取冒險紀錄...";
       document.getElementById('questionText').innerText = "...";
+      
+      // 隱藏按鈕，避免看到舊資料
+      ['btnOptA', 'btnOptB', 'btnOptC', 'btnOptD'].forEach(id => {
+         document.getElementById(id).style.opacity = "0";
+      });
 
       // 呼叫後端
       fetchGameState(contractId);
     }
 
+    // 讀取最新狀態
     async function fetchGameState(contractId) {
-      console.log("正在讀取契約數據 ID:", contractId);
+      console.log("正在讀取契約數據 ID:", contractId); 
 
       try {
         const response = await fetch(GAS_API_URL, {
@@ -342,57 +456,55 @@
           })
         });
         const result = await response.json();
-        console.log("回傳資料:", result);
 
         if (result.success) {
-          // 1. 更新故事與題目
-          const storyEl = document.getElementById('storyText');
-          const questionEl = document.getElementById('questionText');
+          // 1. 更新文字
+          document.getElementById('storyText').innerText = result.yesterdaySummary;
+          document.getElementById('questionText').innerText = result.mbti.question;
 
-          if (storyEl) storyEl.innerText = result.yesterdaySummary;
-          if (questionEl) questionEl.innerText = result.mbti.question;
-
-          // 記錄題目類型
+          // 記錄題目類型與選項內容
           window.currentQuestionType = result.mbti.type;
+          currentOptionsData = result.mbti.options;
 
-          // 2. 更新票券顯示
+          // 2. 更新票券
           const ticketEl = document.getElementById('displayTickets');
           const ticketContainer = document.getElementById('ticketContainer');
-
           if (ticketEl) ticketEl.innerText = result.userTickets;
           if (ticketContainer) ticketContainer.classList.remove('hidden');
 
-          // 3. 處理選項按鈕
-          const optionsDiv = document.getElementById('mbtiOptionsArea');
+          // 3. 判斷按鈕狀態
           const statusText = document.getElementById('mbtiStatus');
+          const btnIds = ['btnOptA', 'btnOptB', 'btnOptC', 'btnOptD'];
 
-          if (optionsDiv && statusText) {
-            if (result.hasPlayed) {
-              // 玩過了 -> 顯示結果
-              optionsDiv.classList.add('hidden');
-              statusText.innerText = "✅ 您今日已選擇：\n" + result.myChoice;
-              statusText.classList.remove('hidden');
-            } else {
-              // 沒玩過 -> 顯示選項
-              optionsDiv.classList.remove('hidden');
-              statusText.classList.add('hidden');
+          if (result.hasPlayed) {
+            // A. 已玩過 -> 隱藏選項，顯示結果
+            btnIds.forEach(id => {
+               const btn = document.getElementById(id);
+               btn.innerText = "";
+               btn.disabled = true;
+               btn.style.opacity = "0";
+            });
+            statusText.innerText = "✅ 您今日已選擇：\n" + result.myChoice;
+            statusText.classList.remove('hidden');
+          } else {
+            // B. 未玩過 -> 顯示選項
+            statusText.classList.add('hidden');
 
-              optionsDiv.innerHTML = "";
-              result.mbti.options.forEach((optText, index) => {
-                const btn = document.createElement('button');
-                btn.className = "btn btn-outline-info text-start btn-sm py-2";
+            btnIds.forEach((id, index) => {
+              const btn = document.getElementById(id);
+              btn.style.opacity = "1";
+              btn.innerText = currentOptionsData[index]; // 填入選項文字
 
-                if (result.userTickets < 1) {
-                  btn.disabled = true;
-                  btn.innerText = `🔒 ${["A. ", "B. ", "C. ", "D. "][index] + optText} (票券不足)`;
-                  btn.classList.add('text-muted');
-                } else {
-                  btn.innerText = ["A. ", "B. ", "C. ", "D. "][index] + optText;
-                  btn.onclick = () => submitChoice(optText, index, btn);
-                }
-                optionsDiv.appendChild(btn);
-              });
-            }
+              // 檢查票券
+              if (result.userTickets < 1) {
+                btn.disabled = true;
+                btn.innerText = "🔒 票券不足";
+                btn.style.backgroundColor = "rgba(0,0,0,0.5)";
+              } else {
+                btn.disabled = false;
+                btn.style.backgroundColor = "rgba(255,255,255,0.8)";
+              }
+            });
           }
 
         } else {
@@ -401,19 +513,30 @@
         }
       } catch (e) {
         console.error("狀態讀取發生錯誤", e);
-        alert("程式發生錯誤，請檢查 Console: " + e);
+        alert("連線錯誤: " + e);
       }
     }
 
+    // 處理選項點擊 (中介函式)
+    function handleOptionClick(index) {
+      if(!currentOptionsData || !currentOptionsData[index]) return;
+      const choiceText = currentOptionsData[index];
+      const btnId = ['btnOptA', 'btnOptB', 'btnOptC', 'btnOptD'][index];
+      const btnElement = document.getElementById(btnId);
+      
+      submitChoice(choiceText, index, btnElement);
+    }
+
+    // 送出選擇
     async function submitChoice(choiceText, index, btnElement) {
-      const allBtns = document.querySelectorAll('#mbtiOptionsArea button');
-      allBtns.forEach(b => b.disabled = true);
+       // 鎖定所有按鈕
+       const btnIds = ['btnOptA', 'btnOptB', 'btnOptC', 'btnOptD'];
+       btnIds.forEach(id => document.getElementById(id).disabled = true);
 
-      const originalText = btnElement.innerText;
-      btnElement.innerText = "⏳ 記錄中...";
-      btnElement.className = "btn btn-info text-white text-start btn-sm";
+       const originalText = btnElement.innerText;
+       btnElement.innerText = "⏳...";
 
-      try {
+       try {
         const payload = {
           action: "submit_mbti",
           userId: userProfile.userId,
@@ -423,53 +546,48 @@
           questionType: window.currentQuestionType
         };
 
-        const response = await fetch(GAS_API_URL, {
-          method: "POST",
-          body: JSON.stringify(payload)
-        });
+        const response = await fetch(GAS_API_URL, { method: "POST", body: JSON.stringify(payload) });
         const result = await response.json();
 
         if (result.success) {
-          document.getElementById('mbtiOptionsArea').classList.add('hidden');
+          // 成功後隱藏所有按鈕
+          btnIds.forEach(id => document.getElementById(id).style.opacity = "0");
+          
           const status = document.getElementById('mbtiStatus');
-          status.innerText = "✅ 您的選擇已記錄！(消耗 1 票券)\n選擇：" + choiceText;
+          status.innerText = "✅ 記錄成功！\n選擇：" + choiceText;
           status.classList.remove('hidden');
 
           if (result.remainingTickets !== undefined) {
             document.getElementById('displayTickets').innerText = result.remainingTickets;
           }
-
         } else {
-          alert("記錄失敗: " + result.message);
+          alert("失敗: " + result.message);
           btnElement.innerText = originalText;
-          allBtns.forEach(b => b.disabled = false);
+          btnIds.forEach(id => document.getElementById(id).disabled = false); // 解鎖
         }
       } catch (e) {
         alert("連線錯誤");
         btnElement.innerText = originalText;
-        allBtns.forEach(b => b.disabled = false);
+        btnIds.forEach(id => document.getElementById(id).disabled = false);
       }
     }
-    // 🔙 回到列表 (修正版：清除參數並切換介面)
+
+    // 🔙 回到列表 (清除參數並切換介面)
     function backToList() {
-      // 1. 清除網址列上的 contractId 參數
-      // 這樣可以確保使用者如果這時候按 F5 重新整理，會停在列表而不是又跳進遊戲
+      // 1. 清除網址參數
       const url = new URL(window.location);
       url.searchParams.delete('contractId');
       window.history.replaceState({}, '', url);
 
-      // 2. 隱藏戰鬥區，顯示列表區
+      // 2. 切換介面
       document.getElementById('battleArea').classList.add('hidden');
       document.getElementById('gameListArea').classList.remove('hidden');
-
-      // 3. (選用) 如果你希望回到列表時重新抓取最新狀態，可以呼叫 fetchContracts()
-      // fetchContracts(); 
-
-      // 4. 清空當前全域變數
+      
+      // 3. 清空全域變數
       window.currentContractId = null;
     }
+
     main();
   </script>
 </body>
-
 </html>
