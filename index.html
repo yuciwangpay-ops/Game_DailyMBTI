@@ -131,8 +131,7 @@
 
       <p id="mbtiStatus" class="text-center text-success mt-2 small hidden">✅ 已完成今日選擇</p>
     </div>
-
-    <button class="btn btn-outline-light mt-4 w-100" onclick="location.reload()">🔙 回到列表</button>
+    <button class="btn btn-outline-light mt-4 w-100" onclick="backToList()">🔙 回到列表</button>
   </div>
 
   <script>
@@ -144,7 +143,7 @@
 
     let userProfile = null;
     let currentSetupContractId = null;
-    let currentContractId = null; 
+    let currentContractId = null;
 
     // 1. 主程式
     async function main() {
@@ -166,7 +165,7 @@
           fetchContracts(targetContractId);
         } else {
           console.log("無指定 ID，正常載入列表");
-          fetchContracts(); 
+          fetchContracts();
         }
 
       } catch (err) {
@@ -193,7 +192,7 @@
           const targetGame = result.games.find(g => g.contractId === autoOpenId);
 
           if (targetGame) {
-            document.getElementById('loading').classList.add('hidden'); 
+            document.getElementById('loading').classList.add('hidden');
 
             if (targetGame.status === "RUNNING") {
               console.log("狀態 RUNNING -> 進入遊戲");
@@ -291,7 +290,7 @@
           teamName: teamName,
           enemyName: enemy,
           treasureName: treasure,
-          storyTheme: theme 
+          storyTheme: theme
         };
 
         const response = await fetch(GAS_API_URL, { method: "POST", body: JSON.stringify(payload) });
@@ -299,7 +298,7 @@
 
         if (result.success) {
           alert("🎉 " + result.message);
-          location.reload(); 
+          location.reload();
         } else {
           alert("❌ " + result.message);
           btn.disabled = false;
@@ -331,7 +330,7 @@
     }
 
     async function fetchGameState(contractId) {
-      console.log("正在讀取契約數據 ID:", contractId); 
+      console.log("正在讀取契約數據 ID:", contractId);
 
       try {
         const response = await fetch(GAS_API_URL, {
@@ -343,7 +342,7 @@
           })
         });
         const result = await response.json();
-        console.log("回傳資料:", result); 
+        console.log("回傳資料:", result);
 
         if (result.success) {
           // 1. 更新故事與題目
@@ -386,7 +385,7 @@
                 if (result.userTickets < 1) {
                   btn.disabled = true;
                   btn.innerText = `🔒 ${["A. ", "B. ", "C. ", "D. "][index] + optText} (票券不足)`;
-                  btn.classList.add('text-muted'); 
+                  btn.classList.add('text-muted');
                 } else {
                   btn.innerText = ["A. ", "B. ", "C. ", "D. "][index] + optText;
                   btn.onclick = () => submitChoice(optText, index, btn);
@@ -442,8 +441,8 @@
 
         } else {
           alert("記錄失敗: " + result.message);
-          btnElement.innerText = originalText; 
-          allBtns.forEach(b => b.disabled = false); 
+          btnElement.innerText = originalText;
+          allBtns.forEach(b => b.disabled = false);
         }
       } catch (e) {
         alert("連線錯誤");
@@ -451,7 +450,24 @@
         allBtns.forEach(b => b.disabled = false);
       }
     }
+    // 🔙 回到列表 (修正版：清除參數並切換介面)
+    function backToList() {
+      // 1. 清除網址列上的 contractId 參數
+      // 這樣可以確保使用者如果這時候按 F5 重新整理，會停在列表而不是又跳進遊戲
+      const url = new URL(window.location);
+      url.searchParams.delete('contractId');
+      window.history.replaceState({}, '', url);
 
+      // 2. 隱藏戰鬥區，顯示列表區
+      document.getElementById('battleArea').classList.add('hidden');
+      document.getElementById('gameListArea').classList.remove('hidden');
+
+      // 3. (選用) 如果你希望回到列表時重新抓取最新狀態，可以呼叫 fetchContracts()
+      // fetchContracts(); 
+
+      // 4. 清空當前全域變數
+      window.currentContractId = null;
+    }
     main();
   </script>
 </body>
