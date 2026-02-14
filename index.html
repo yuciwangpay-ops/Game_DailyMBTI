@@ -56,157 +56,14 @@
       background: #333;
     }
 
-    /* 🆕 戰鬥面板專屬樣式 */
-    .battle-panel {
-      background: #2a2a2a;
-      border-radius: 15px;
-      padding: 20px;
-      text-align: center;
-      border: 2px solid #444;
-      box-shadow: 0 0 15px rgba(0, 0, 0, 0.5);
-    }
-
-    .monster-img {
-      font-size: 60px;
-      margin-bottom: 10px;
-      animation: float 3s ease-in-out infinite;
-    }
-
-    @keyframes float {
-      0% {
-        transform: translateY(0px);
-      }
-
-      50% {
-        transform: translateY(-10px);
-      }
-
-      100% {
-        transform: translateY(0px);
-      }
-    }
-
-    .hp-bar-bg {
-      background: #444;
-      height: 20px;
-      border-radius: 10px;
-      overflow: hidden;
-      margin: 15px 0;
-      border: 1px solid #555;
-    }
-
-    .hp-bar-fill {
-      background: linear-gradient(90deg, #ff4757, #ff6b81);
-      height: 100%;
-      width: 100%;
-      transition: width 0.5s ease-out;
-    }
-
-
-    /* 找到這個 class */
     .ticket-count {
       font-size: 1.1em;
-      /* 稍微縮小一點點字體 */
       color: #ffd700;
       font-weight: bold;
-      /* margin-bottom: 20px;  <-- 移除這行，改用 HTML 的 my-2 控制 */
       border: 1px dashed #ffd700;
       padding: 2px 10px;
-      /* 👈 修改這裡：上下 padding 變小 (2px)，左右加大 (10px) */
       border-radius: 8px;
       display: inline-block;
-    }
-
-    .btn-attack {
-      background: linear-gradient(180deg, #ff6b6b, #ee5253);
-      width: 100%;
-      font-size: 1.2em;
-      padding: 15px;
-      border: none;
-      border-radius: 50px;
-      color: white;
-      box-shadow: 0 4px 0 #b33939;
-      transition: all 0.1s;
-    }
-
-    .btn-attack:active {
-      transform: translateY(4px);
-      box-shadow: none;
-    }
-
-    .btn-attack:disabled {
-      background: #555;
-      box-shadow: none;
-      cursor: not-allowed;
-      opacity: 0.7;
-    }
-
-    /* 傷害飄字特效 (簡單版) */
-    .damage-text {
-      color: #ff4757;
-      font-weight: bold;
-      font-size: 1.5em;
-      position: absolute;
-      left: 50%;
-      animation: fadeUp 1s forwards;
-    }
-
-    @keyframes fadeUp {
-      from {
-        opacity: 1;
-        transform: translate(-50%, 0);
-      }
-
-      to {
-        opacity: 0;
-        transform: translate(-50%, -50px);
-      }
-    }
-
-    @keyframes shake {
-      0% {
-        transform: translate(1px, 1px) rotate(0deg);
-      }
-
-      10% {
-        transform: translate(-1px, -2px) rotate(-1deg);
-      }
-
-      20% {
-        transform: translate(-3px, 0px) rotate(1deg);
-      }
-
-      30% {
-        transform: translate(3px, 2px) rotate(0deg);
-      }
-
-      40% {
-        transform: translate(1px, -1px) rotate(1deg);
-      }
-
-      50% {
-        transform: translate(-1px, 2px) rotate(-1deg);
-      }
-
-      60% {
-        transform: translate(-3px, 1px) rotate(0deg);
-      }
-
-      70% {
-        transform: translate(3px, 1px) rotate(-1deg);
-      }
-
-      80% {
-        transform: translate(-1px, -1px) rotate(1deg);
-      }
-
-      90% {
-        transform: translate(1px, 2px) rotate(0deg);
-      }
-
-      100% {
-        transform: translate(1px, -2px) rotate(-1deg);
-      }
     }
   </style>
 </head>
@@ -250,10 +107,6 @@
 
   <div id="battleArea" class="hidden">
 
-    <div class="battle-panel position-relative" style="display: none;">
-      <div class="monster-img">🦖</div>
-    </div>
-
     <div class="card mt-3 p-3" style="border: 1px solid #444; background: #222;">
 
       <div class="d-flex justify-content-between align-items-center mb-3">
@@ -273,10 +126,6 @@
       <h6 class="mb-2 text-info">🤔 接下來該怎麼做？</h6>
       <p id="questionText" class="mb-4 small" style="font-size: 1em;">...</p>
 
-      <button id="btnAction" class="btn btn-main w-100 py-2 mb-3 hidden" onclick="performAttack()">
-        ⚡️ 選擇下一步行動 (需 🎫)
-      </button>
-
       <div id="mbtiOptionsArea" class="d-grid gap-2 hidden">
       </div>
 
@@ -295,12 +144,9 @@
 
     let userProfile = null;
     let currentSetupContractId = null;
-    let currentContractId = null; // 戰鬥時用的 ID
+    let currentContractId = null; 
 
-
-    // ==========================================
-    // 1. 修改後的 main：不再盲目進入，而是傳遞 ID 給 fetchContracts 去判斷
-    // ==========================================
+    // 1. 主程式
     async function main() {
       try {
         await liff.init({ liffId: LIFF_ID });
@@ -312,17 +158,15 @@
 
         userProfile = await liff.getProfile();
 
-        // 偵測網址參數
         const urlParams = new URLSearchParams(window.location.search);
         const targetContractId = urlParams.get('contractId');
 
         if (targetContractId) {
-          console.log("偵測到指定 ID，準備檢查狀態...", targetContractId);
-          // 📢 改動：不直接 enterGame，而是呼叫 fetchContracts 並把 ID 傳進去
+          console.log("偵測到指定 ID:", targetContractId);
           fetchContracts(targetContractId);
         } else {
           console.log("無指定 ID，正常載入列表");
-          fetchContracts(); // 沒參數就是正常載入
+          fetchContracts(); 
         }
 
       } catch (err) {
@@ -330,9 +174,7 @@
       }
     }
 
-    // ==========================================
-    // 2. 修改後的 fetchContracts：負責分流 (Auto-Routing)
-    // ==========================================
+    // 2. 抓取列表並分流
     async function fetchContracts(autoOpenId = null) {
       try {
         const response = await fetch(GAS_API_URL, {
@@ -341,53 +183,43 @@
         });
         const result = await response.json();
 
-        // 無論如何，先準備好列表 (在背景渲染)
         if (result.success) {
           renderList(result.games);
         } else {
           document.getElementById('contractsContainer').innerHTML = `<p class="text-danger">${result.message}</p>`;
         }
 
-        // 🛑 關鍵分流邏輯
         if (autoOpenId && result.success) {
-          // 在回傳的列表中，尋找目標契約
           const targetGame = result.games.find(g => g.contractId === autoOpenId);
 
           if (targetGame) {
-            // 🎯 找到了！根據狀態決定去哪
-            document.getElementById('loading').classList.add('hidden'); // 關掉轉圈圈
+            document.getElementById('loading').classList.add('hidden'); 
 
             if (targetGame.status === "RUNNING") {
-              // A. 遊戲已開始 -> 進戰鬥
               console.log("狀態 RUNNING -> 進入遊戲");
               enterGame(targetGame.contractId, targetGame.contractName);
             } else {
-              // B. 遊戲未開始 -> 判斷身分
               if (targetGame.role === "Admin") {
-                // B-1. 我是隊長 -> 進設定頁
                 console.log("狀態 PENDING (隊長) -> 初始設定");
                 openSetup(targetGame.contractId, targetGame.contractName);
               } else {
-                // B-2. 我是隊員 -> 顯示提示並回列表
                 alert("⏳ 隊長尚未完成「初始設定」，請稍後再來！");
                 document.getElementById('gameListArea').classList.remove('hidden');
               }
             }
           } else {
-            // 找不到 (可能是 ID 錯了或沒權限)
             alert("❌ 找不到該契約資料，請確認您是否已加入。");
             document.getElementById('loading').classList.add('hidden');
             document.getElementById('gameListArea').classList.remove('hidden');
           }
         } else {
-          // 正常開啟 (沒有 ID)，直接顯示列表
           document.getElementById('loading').classList.add('hidden');
           document.getElementById('gameListArea').classList.remove('hidden');
         }
 
       } catch (e) {
         alert("連線錯誤: " + e);
-        document.getElementById('loading').classList.add('hidden'); // 發生錯誤也要記得關 loading
+        document.getElementById('loading').classList.add('hidden');
       }
     }
 
@@ -403,13 +235,9 @@
 
       games.forEach(game => {
         let actionHtml = "";
-
-        // 判斷按鈕狀態
         if (game.status === "RUNNING") {
-          // 正在進行中 -> 顯示「進入遊戲」
           actionHtml = `<button class="btn btn-game" onclick="enterGame('${game.contractId}', '${game.contractName}')">🎮 進入遊戲</button>`;
         } else if (game.status === "PENDING") {
-          // 等待中 -> 判斷是隊長還是隊員
           if (game.role === "Admin") {
             actionHtml = `<button class="btn btn-main" onclick="openSetup('${game.contractId}', '${game.contractName}')">⚙️ 初始設定</button>`;
           } else {
@@ -417,14 +245,12 @@
           }
         }
 
-        // 👇 這裡移除了 ID 那一行，卡片會變得更緊湊乾淨
         const card = `
           <div class="card p-3">
             <div class="d-flex justify-content-between align-items-center mb-2">
               <h5 class="m-0">${game.contractName}</h5>
               <span class="status-badge">${game.status}</span>
             </div>
-            
             ${actionHtml}
           </div>
         `;
@@ -432,7 +258,7 @@
       });
     }
 
-    // --- 設定功能區 ---
+    // 設定功能
     function openSetup(contractId, name) {
       currentSetupContractId = contractId;
       document.getElementById('setupContractName').innerText = name;
@@ -449,7 +275,6 @@
       const teamName = document.getElementById('inputTeamName').value;
       const enemy = document.getElementById('inputEnemy').value;
       const treasure = document.getElementById('inputTreasure').value;
-      // 👇 新增這行：抓取選擇的風格
       const theme = document.getElementById('inputTheme').value;
 
       if (!teamName || !enemy || !treasure) { alert("請填寫完整！"); return; }
@@ -466,7 +291,7 @@
           teamName: teamName,
           enemyName: enemy,
           treasureName: treasure,
-          storyTheme: theme // 👈 記得把這個傳給後端
+          storyTheme: theme 
         };
 
         const response = await fetch(GAS_API_URL, { method: "POST", body: JSON.stringify(payload) });
@@ -474,7 +299,7 @@
 
         if (result.success) {
           alert("🎉 " + result.message);
-          location.reload(); // 成功後重新整理
+          location.reload(); 
         } else {
           alert("❌ " + result.message);
           btn.disabled = false;
@@ -486,36 +311,27 @@
         btn.innerText = "✨ 啟動遊戲";
       }
     }
+
     // ==========================================
-    // 🆕 戰鬥功能區 (Game Core)
+    // 🆕 戰鬥功能區 (已修正：移除怪獸操作)
     // ==========================================
-    // 進入戰鬥畫面
     async function enterGame(contractId, contractName) {
       document.getElementById('gameListArea').classList.add('hidden');
       document.getElementById('battleArea').classList.remove('hidden');
 
       window.currentContractId = contractId;
 
-      // 1. 介面初始化：顯示載入中
-      document.getElementById('monsterName').innerText = "正在分析敵人數據...";
-      document.getElementById('monsterName').style.color = "#888";
-
-      // 因為我們把 HP 放到同一行了，初始時先清空或顯示 ???
-      document.getElementById('hpText').innerText = "(HP: ??? / ???)";
-      document.getElementById('hpBar').style.width = "100%"; // 先補滿比較好看
-
-      // 隱藏票券與戰鬥資訊，避免顯示舊資料
+      // 初始化介面 (只重置文字，不操作不存在的元素)
       document.getElementById('ticketContainer').classList.add('hidden');
       document.getElementById('storyText').innerText = "正在讀取冒險紀錄...";
       document.getElementById('questionText').innerText = "...";
 
-      // 2. 呼叫後端讀取資料
+      // 呼叫後端
       fetchGameState(contractId);
     }
 
-    // [index.html] script 區域
     async function fetchGameState(contractId) {
-      console.log("正在讀取契約數據 ID:", contractId); // 方便除錯
+      console.log("正在讀取契約數據 ID:", contractId); 
 
       try {
         const response = await fetch(GAS_API_URL, {
@@ -527,10 +343,10 @@
           })
         });
         const result = await response.json();
-        console.log("回傳資料:", result); // 確認後端有回傳成功
+        console.log("回傳資料:", result); 
 
         if (result.success) {
-          // 1. 更新故事與題目 (這是最重要的部分)
+          // 1. 更新故事與題目
           const storyEl = document.getElementById('storyText');
           const questionEl = document.getElementById('questionText');
 
@@ -547,35 +363,32 @@
           if (ticketEl) ticketEl.innerText = result.userTickets;
           if (ticketContainer) ticketContainer.classList.remove('hidden');
 
-          // 3. 處理選項按鈕狀態
+          // 3. 處理選項按鈕
           const optionsDiv = document.getElementById('mbtiOptionsArea');
           const statusText = document.getElementById('mbtiStatus');
 
           if (optionsDiv && statusText) {
             if (result.hasPlayed) {
-              // A. 如果玩過了 -> 顯示結果
+              // 玩過了 -> 顯示結果
               optionsDiv.classList.add('hidden');
               statusText.innerText = "✅ 您今日已選擇：\n" + result.myChoice;
               statusText.classList.remove('hidden');
             } else {
-              // B. 如果還沒玩 -> 顯示選項
+              // 沒玩過 -> 顯示選項
               optionsDiv.classList.remove('hidden');
               statusText.classList.add('hidden');
 
-              // 清空舊按鈕並重新生成
               optionsDiv.innerHTML = "";
               result.mbti.options.forEach((optText, index) => {
                 const btn = document.createElement('button');
                 btn.className = "btn btn-outline-info text-start btn-sm py-2";
 
-                // 判斷票券是否足夠
                 if (result.userTickets < 1) {
                   btn.disabled = true;
                   btn.innerText = `🔒 ${["A. ", "B. ", "C. ", "D. "][index] + optText} (票券不足)`;
-                  btn.classList.add('text-muted'); // 讓文字看起來灰一點
+                  btn.classList.add('text-muted'); 
                 } else {
                   btn.innerText = ["A. ", "B. ", "C. ", "D. "][index] + optText;
-                  // 綁定點擊事件
                   btn.onclick = () => submitChoice(optText, index, btn);
                 }
                 optionsDiv.appendChild(btn);
@@ -584,7 +397,6 @@
           }
 
         } else {
-          // 如果後端回傳失敗
           alert("讀取失敗：" + result.message);
           document.getElementById('storyText').innerText = "讀取失敗：" + result.message;
         }
@@ -594,13 +406,10 @@
       }
     }
 
-    // 修改後的 submitChoice (加入票券更新邏輯)
     async function submitChoice(choiceText, index, btnElement) {
-      // 鎖定所有按鈕
       const allBtns = document.querySelectorAll('#mbtiOptionsArea button');
       allBtns.forEach(b => b.disabled = true);
 
-      // 視覺回饋
       const originalText = btnElement.innerText;
       btnElement.innerText = "⏳ 記錄中...";
       btnElement.className = "btn btn-info text-white text-start btn-sm";
@@ -627,15 +436,14 @@
           status.innerText = "✅ 您的選擇已記錄！(消耗 1 票券)\n選擇：" + choiceText;
           status.classList.remove('hidden');
 
-          // ✅ 更新前端的票券剩餘數量
           if (result.remainingTickets !== undefined) {
             document.getElementById('displayTickets').innerText = result.remainingTickets;
           }
 
         } else {
           alert("記錄失敗: " + result.message);
-          btnElement.innerText = originalText; // 還原文字
-          allBtns.forEach(b => b.disabled = false); // 解鎖重試
+          btnElement.innerText = originalText; 
+          allBtns.forEach(b => b.disabled = false); 
         }
       } catch (e) {
         alert("連線錯誤");
@@ -643,66 +451,6 @@
         allBtns.forEach(b => b.disabled = false);
       }
     }
-    // ⚔️ 發動攻擊
-    async function performAttack() {
-      const btn = document.getElementById('btnAction');
-      if (btn.disabled) return;
-
-      btn.disabled = true;
-      btn.innerText = "⚡️ 行動判定中...";
-
-      if (navigator.vibrate) navigator.vibrate(200);
-
-      try {
-        const response = await fetch(GAS_API_URL, {
-          method: "POST",
-          body: JSON.stringify({
-            action: "attack",
-            userId: userProfile.userId,
-            contractId: window.currentContractId,
-            userName: userProfile.displayName
-          })
-        });
-
-        const result = await response.json();
-
-        if (result.success) {
-          // ===============================================
-          // 🆕 修改重點：攻擊後的數據更新
-          // ===============================================
-
-          // 1. 更新血量文字 (HP: 剩餘 / 最大)
-          document.getElementById('hpText').innerText = `(HP: ${result.remainingHp} / ${result.maxHp})`;
-
-          // 2. 更新血量條
-          const pct = Math.max(0, (result.remainingHp / result.maxHp) * 100);
-          document.getElementById('hpBar').style.width = pct + "%";
-
-          // 3. 更新票券與戰鬥訊息
-          document.getElementById('battleLog').innerText = `💥 造成 ${result.damage} 點傷害！`;
-          document.getElementById('displayTickets').innerText = result.remainingTickets;
-
-          // ===============================================
-          // 切換介面：隱藏大按鈕，顯示 4 個選項
-          // ===============================================
-          btn.classList.add('hidden');
-          document.getElementById('mbtiOptionsArea').classList.remove('hidden');
-
-        } else {
-          alert("行動失敗: " + result.message);
-          btn.innerText = "⚡️ 選擇下一步行動 (需 1 🎫)";
-          btn.disabled = false;
-        }
-      } catch (e) {
-        console.error(e);
-        alert("連線錯誤");
-        btn.innerText = "⚡️ 選擇下一步行動 (需 1 🎫)";
-        btn.disabled = false;
-      }
-    }
-
-    // ⚔️ 發動攻擊 (更新：多傳名字給後端)
-
 
     main();
   </script>
