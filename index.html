@@ -121,12 +121,15 @@
     .option-btn-overlay {
       width: 17%;
       height: 17%;
-      font-size: 0.75rem; /* 選項字體 */
-      border-radius: 50%; /* 圓形感應區 */
+      font-size: 0.75rem; 
+      border-radius: 50%; 
       cursor: pointer;
-      background: rgba(255, 255, 255, 0.1); /* 微微的白色背景增加可讀性 */
+      background: rgba(255, 255, 255, 0.3); /* 稍微調高透明度，讓藍色字更清楚 */
       border: none;
-      color: #333;
+      /* 👇 修改這裡：改成深藍色，比較顯眼 */
+      color: #0d47a1; 
+      font-weight: 800; /* 加粗字體 */
+      
       transition: transform 0.1s, opacity 0.2s;
       box-shadow: 0 2px 5px rgba(0,0,0,0.2);
     }
