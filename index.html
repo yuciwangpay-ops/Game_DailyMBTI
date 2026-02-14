@@ -514,8 +514,9 @@
     }
 
     // [index.html] script 區域
-
     async function fetchGameState(contractId) {
+      console.log("正在讀取契約數據 ID:", contractId); // 方便除錯
+
       try {
         const response = await fetch(GAS_API_URL, {
           method: "POST",
@@ -526,54 +527,71 @@
           })
         });
         const result = await response.json();
+        console.log("回傳資料:", result); // 確認後端有回傳成功
 
         if (result.success) {
-          // 更新故事與題目
-          document.getElementById('storyText').innerText = result.yesterdaySummary;
-          document.getElementById('questionText').innerText = result.mbti.question;
+          // 1. 更新故事與題目 (這是最重要的部分)
+          const storyEl = document.getElementById('storyText');
+          const questionEl = document.getElementById('questionText');
+
+          if (storyEl) storyEl.innerText = result.yesterdaySummary;
+          if (questionEl) questionEl.innerText = result.mbti.question;
+
+          // 記錄題目類型
           window.currentQuestionType = result.mbti.type;
 
-          // ✅ 更新票券顯示 (並確保它顯示出來)
-          document.getElementById('displayTickets').innerText = result.userTickets;
-          document.getElementById('ticketContainer').classList.remove('hidden');
+          // 2. 更新票券顯示
+          const ticketEl = document.getElementById('displayTickets');
+          const ticketContainer = document.getElementById('ticketContainer');
 
+          if (ticketEl) ticketEl.innerText = result.userTickets;
+          if (ticketContainer) ticketContainer.classList.remove('hidden');
+
+          // 3. 處理選項按鈕狀態
           const optionsDiv = document.getElementById('mbtiOptionsArea');
           const statusText = document.getElementById('mbtiStatus');
 
-          if (result.hasPlayed) {
-            // 玩過了 -> 顯示結果
-            optionsDiv.classList.add('hidden');
-            statusText.innerText = "✅ 您今日已選擇：\n" + result.myChoice;
-            statusText.classList.remove('hidden');
-          } else {
-            // 還沒玩 -> 直接顯示選項 (取代原本的攻擊按鈕)
-            optionsDiv.classList.remove('hidden');
-            statusText.classList.add('hidden');
+          if (optionsDiv && statusText) {
+            if (result.hasPlayed) {
+              // A. 如果玩過了 -> 顯示結果
+              optionsDiv.classList.add('hidden');
+              statusText.innerText = "✅ 您今日已選擇：\n" + result.myChoice;
+              statusText.classList.remove('hidden');
+            } else {
+              // B. 如果還沒玩 -> 顯示選項
+              optionsDiv.classList.remove('hidden');
+              statusText.classList.add('hidden');
 
-            // 生成選項按鈕
-            optionsDiv.innerHTML = "";
-            result.mbti.options.forEach((optText, index) => {
-              const btn = document.createElement('button');
-              btn.className = "btn btn-outline-info text-start btn-sm py-2";
+              // 清空舊按鈕並重新生成
+              optionsDiv.innerHTML = "";
+              result.mbti.options.forEach((optText, index) => {
+                const btn = document.createElement('button');
+                btn.className = "btn btn-outline-info text-start btn-sm py-2";
 
-              // 若票券不足，按鈕變灰且不可點擊
-              if (result.userTickets < 1) {
-                btn.disabled = true;
-                btn.innerText = `🔒 ${["A. ", "B. ", "C. ", "D. "][index] + optText} (票券不足)`;
-              } else {
-                btn.innerText = ["A. ", "B. ", "C. ", "D. "][index] + optText;
-                // 點擊時送出選擇
-                btn.onclick = () => submitChoice(optText, index, btn);
-              }
-
-              optionsDiv.appendChild(btn);
-            });
+                // 判斷票券是否足夠
+                if (result.userTickets < 1) {
+                  btn.disabled = true;
+                  btn.innerText = `🔒 ${["A. ", "B. ", "C. ", "D. "][index] + optText} (票券不足)`;
+                  btn.classList.add('text-muted'); // 讓文字看起來灰一點
+                } else {
+                  btn.innerText = ["A. ", "B. ", "C. ", "D. "][index] + optText;
+                  // 綁定點擊事件
+                  btn.onclick = () => submitChoice(optText, index, btn);
+                }
+                optionsDiv.appendChild(btn);
+              });
+            }
           }
 
         } else {
+          // 如果後端回傳失敗
           alert("讀取失敗：" + result.message);
+          document.getElementById('storyText').innerText = "讀取失敗：" + result.message;
         }
-      } catch (e) { console.error("狀態讀取失敗", e); }
+      } catch (e) {
+        console.error("狀態讀取發生錯誤", e);
+        alert("程式發生錯誤，請檢查 Console: " + e);
+      }
     }
 
     // 修改後的 submitChoice (加入票券更新邏輯)
