@@ -247,32 +247,21 @@
     </div>
   </div>
 
+
   <div id="battleArea" class="hidden">
 
-    <div class="battle-panel position-relative">
+    <div class="battle-panel position-relative" style="display: none;">
       <div class="monster-img">🦖</div>
-
-      <h3 class="mb-2">
-        <span id="monsterName">載入中...</span>
-        <small class="text-muted ms-2" style="font-size: 0.5em; vertical-align: middle;">
-          <span id="hpText">(HP: ??? / ???)</span>
-        </small>
-      </h3>
-      <div class="hp-bar-bg" style="margin: 10px 0;">
-        <div id="hpBar" class="hp-bar-fill" style="width: 100%;"></div>
-      </div>
-
-      <p id="battleLog" class="mb-2" style="min-height: 24px; font-weight: bold; color: #ff5e5e;">
-      </p>
-
-      <div id="ticketContainer" class="ticket-count my-2 hidden">
-        🎫 剩餘票卷: <span id="displayTickets">0</span>
-      </div>
     </div>
 
-
     <div class="card mt-3 p-3" style="border: 1px solid #444; background: #222;">
-      <h5 class="text-warning">🔥 冒險日誌</h5>
+
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <h5 class="text-warning m-0">🔥 冒險日誌</h5>
+        <div id="ticketContainer" class="ticket-count hidden">
+          🎫 剩餘票卷: <span id="displayTickets">0</span>
+        </div>
+      </div>
 
       <div class="mb-3 p-2"
         style="background: #333; border-radius: 8px; font-size: 0.9em; line-height: 1.6; color: #ddd;">
@@ -284,7 +273,7 @@
       <h6 class="mb-2 text-info">🤔 接下來該怎麼做？</h6>
       <p id="questionText" class="mb-4 small" style="font-size: 1em;">...</p>
 
-      <button id="btnAction" class="btn btn-main w-100 py-2 mb-3" onclick="performAttack()">
+      <button id="btnAction" class="btn btn-main w-100 py-2 mb-3 hidden" onclick="performAttack()">
         ⚡️ 選擇下一步行動 (需 🎫)
       </button>
 
@@ -309,7 +298,7 @@
     let currentContractId = null; // 戰鬥時用的 ID
 
 
-  // ==========================================
+    // ==========================================
     // 1. 修改後的 main：不再盲目進入，而是傳遞 ID 給 fetchContracts 去判斷
     // ==========================================
     async function main() {
@@ -336,8 +325,8 @@
           fetchContracts(); // 沒參數就是正常載入
         }
 
-      } catch (err) { 
-        alert("啟動失敗: " + err); 
+      } catch (err) {
+        alert("啟動失敗: " + err);
       }
     }
 
@@ -396,8 +385,8 @@
           document.getElementById('gameListArea').classList.remove('hidden');
         }
 
-      } catch (e) { 
-        alert("連線錯誤: " + e); 
+      } catch (e) {
+        alert("連線錯誤: " + e);
         document.getElementById('loading').classList.add('hidden'); // 發生錯誤也要記得關 loading
       }
     }
@@ -524,6 +513,7 @@
       fetchGameState(contractId);
     }
 
+    // [index.html] script 區域
 
     async function fetchGameState(contractId) {
       try {
@@ -538,62 +528,26 @@
         const result = await response.json();
 
         if (result.success) {
-          // ===============================================
-          // 🆕 修改重點：HP 格式整合 & 票券乾淨顯示
-          // ===============================================
-
-          // 1. 更新怪物名稱與顏色
-          document.getElementById('monsterName').innerText = result.monsterName;
-          document.getElementById('monsterName').style.color = ""; // 恢復原本顏色
-
-          // 2. 更新血量條與文字
-          const pct = Math.max(0, (result.currentHp / result.maxHp) * 100);
-          document.getElementById('hpBar').style.width = pct + "%";
-
-          // 👇 這裡改成您要的格式 (HP: 1000 / 1000)
-          document.getElementById('hpText').innerText = `(HP: ${result.currentHp} / ${result.maxHp})`;
-
-          // 3. 更新故事與題目
+          // 更新故事與題目
           document.getElementById('storyText').innerText = result.yesterdaySummary;
           document.getElementById('questionText').innerText = result.mbti.question;
-
-          // 4. 記錄題目類型 (給等一下送出選擇用)
           window.currentQuestionType = result.mbti.type;
 
-          // 5. 更新票券 (移除 Debug 資訊，只留數字)
+          // ✅ 更新票券顯示 (並確保它顯示出來)
           document.getElementById('displayTickets').innerText = result.userTickets;
           document.getElementById('ticketContainer').classList.remove('hidden');
 
-          // ===============================================
-          // 以下 UI 邏輯保持不變
-          // ===============================================
-          const actionBtn = document.getElementById('btnAction');
           const optionsDiv = document.getElementById('mbtiOptionsArea');
           const statusText = document.getElementById('mbtiStatus');
 
           if (result.hasPlayed) {
-            // A. 如果玩過了 -> 顯示結果
-            actionBtn.classList.add('hidden');
+            // 玩過了 -> 顯示結果
             optionsDiv.classList.add('hidden');
             statusText.innerText = "✅ 您今日已選擇：\n" + result.myChoice;
             statusText.classList.remove('hidden');
           } else {
-            // B. 如果還沒玩 -> 顯示按鈕
-            actionBtn.classList.remove('hidden');
-
-            if (result.userTickets > 0) {
-              actionBtn.disabled = false;
-              actionBtn.innerText = "⚡️ 選擇下一步行動 (需 1 🎫)";
-              actionBtn.classList.remove('btn-secondary');
-              actionBtn.classList.add('btn-main');
-            } else {
-              actionBtn.disabled = true;
-              actionBtn.innerText = "⛔️ 票卷不足 (請先完成習慣)";
-              actionBtn.classList.remove('btn-main');
-              actionBtn.classList.add('btn-secondary');
-            }
-
-            optionsDiv.classList.add('hidden');
+            // 還沒玩 -> 直接顯示選項 (取代原本的攻擊按鈕)
+            optionsDiv.classList.remove('hidden');
             statusText.classList.add('hidden');
 
             // 生成選項按鈕
@@ -601,19 +555,76 @@
             result.mbti.options.forEach((optText, index) => {
               const btn = document.createElement('button');
               btn.className = "btn btn-outline-info text-start btn-sm py-2";
-              btn.innerText = ["A. ", "B. ", "C. ", "D. "][index] + optText;
-              btn.onclick = () => submitChoice(optText, index, btn);
+
+              // 若票券不足，按鈕變灰且不可點擊
+              if (result.userTickets < 1) {
+                btn.disabled = true;
+                btn.innerText = `🔒 ${["A. ", "B. ", "C. ", "D. "][index] + optText} (票券不足)`;
+              } else {
+                btn.innerText = ["A. ", "B. ", "C. ", "D. "][index] + optText;
+                // 點擊時送出選擇
+                btn.onclick = () => submitChoice(optText, index, btn);
+              }
+
               optionsDiv.appendChild(btn);
             });
           }
 
         } else {
-          // 如果讀取失敗
           alert("讀取失敗：" + result.message);
         }
       } catch (e) { console.error("狀態讀取失敗", e); }
     }
 
+    // 修改後的 submitChoice (加入票券更新邏輯)
+    async function submitChoice(choiceText, index, btnElement) {
+      // 鎖定所有按鈕
+      const allBtns = document.querySelectorAll('#mbtiOptionsArea button');
+      allBtns.forEach(b => b.disabled = true);
+
+      // 視覺回饋
+      const originalText = btnElement.innerText;
+      btnElement.innerText = "⏳ 記錄中...";
+      btnElement.className = "btn btn-info text-white text-start btn-sm";
+
+      try {
+        const payload = {
+          action: "submit_mbti",
+          userId: userProfile.userId,
+          contractId: window.currentContractId,
+          choice: choiceText,
+          choiceIndex: index,
+          questionType: window.currentQuestionType
+        };
+
+        const response = await fetch(GAS_API_URL, {
+          method: "POST",
+          body: JSON.stringify(payload)
+        });
+        const result = await response.json();
+
+        if (result.success) {
+          document.getElementById('mbtiOptionsArea').classList.add('hidden');
+          const status = document.getElementById('mbtiStatus');
+          status.innerText = "✅ 您的選擇已記錄！(消耗 1 票券)\n選擇：" + choiceText;
+          status.classList.remove('hidden');
+
+          // ✅ 更新前端的票券剩餘數量
+          if (result.remainingTickets !== undefined) {
+            document.getElementById('displayTickets').innerText = result.remainingTickets;
+          }
+
+        } else {
+          alert("記錄失敗: " + result.message);
+          btnElement.innerText = originalText; // 還原文字
+          allBtns.forEach(b => b.disabled = false); // 解鎖重試
+        }
+      } catch (e) {
+        alert("連線錯誤");
+        btnElement.innerText = originalText;
+        allBtns.forEach(b => b.disabled = false);
+      }
+    }
     // ⚔️ 發動攻擊
     async function performAttack() {
       const btn = document.getElementById('btnAction');
@@ -674,43 +685,6 @@
 
     // ⚔️ 發動攻擊 (更新：多傳名字給後端)
 
-    // 🆕 送出 MBTI 選擇
-    async function submitChoice(choiceText, index, btnElement) {
-      // 簡單的視覺回饋：鎖定所有按鈕
-      const allBtns = document.querySelectorAll('#mbtiOptionsArea button');
-      allBtns.forEach(b => b.disabled = true);
-      btnElement.className = "btn btn-info text-white text-start btn-sm"; // 變色表示選中
-
-      try {
-        const payload = {
-          action: "submit_mbti",
-          userId: userProfile.userId,
-          contractId: window.currentContractId,
-          choice: choiceText,
-          choiceIndex: index,
-          questionType: window.currentQuestionType
-        };
-
-        const response = await fetch(GAS_API_URL, {
-          method: "POST",
-          body: JSON.stringify(payload)
-        });
-        const result = await response.json();
-
-        if (result.success) {
-          document.getElementById('mbtiOptionsArea').classList.add('hidden'); // 隱藏按鈕
-          const status = document.getElementById('mbtiStatus');
-          status.innerText = "✅ 您的選擇已記錄！(" + choiceText + ")";
-          status.classList.remove('hidden');
-        } else {
-          alert("記錄失敗: " + result.message);
-          allBtns.forEach(b => b.disabled = false); // 解鎖重試
-        }
-      } catch (e) {
-        alert("連線錯誤");
-        allBtns.forEach(b => b.disabled = false);
-      }
-    }
 
     main();
   </script>
