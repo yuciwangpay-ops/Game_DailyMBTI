@@ -1,79 +1,652 @@
 <!DOCTYPE html>
-<html lang="zh-TW">
+<html>
+
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>建立靈魂小怪獸群組</title>
-    <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
-    <script src="https://cdn.tailwindcss.com"></script>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PersonaPact 遊戲大廳</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+  <style>
+    /* =========================================
+       1. 基礎設定
+       ========================================= */
+    body {
+      background-color: #121212;
+      color: #e0e0e0;
+      font-family: 'Noto Sans TC', sans-serif;
+      padding: 20px;
+      padding-bottom: 50px;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    /* 卡片樣式 (列表與設定用) */
+    .card {
+      background-color: #1e1e1e;
+      border: 1px solid #333;
+      margin-bottom: 15px;
+      border-radius: 12px;
+    }
+
+    .form-control {
+      background-color: #2c2c2c;
+      border: 1px solid #444;
+      color: #fff;
+      margin-bottom: 10px;
+    }
+
+    /* 按鈕樣式 */
+    .btn-main {
+      background: linear-gradient(45deg, #8e2de2, #4a00e0);
+      color: white;
+      border: none;
+      width: 100%;
+    }
+
+    .btn-game {
+      background: linear-gradient(45deg, #11998e, #38ef7d);
+      color: white;
+      border: none;
+      width: 100%;
+    }
+
+    .status-badge {
+      font-size: 0.8em;
+      padding: 3px 8px;
+      border-radius: 4px;
+      background: #333;
+    }
+
+    /* =========================================
+       2. 森林背景遊戲盤面樣式 (核心修改)
+       ========================================= */
+
+    /* 容器：限制最大寬度，保持比例 */
+    .game-board-container {
+      position: relative;
+      width: 100%;
+      max-width: 600px;
+      /* 電腦版限制寬度 */
+      margin: 0 auto;
+      /* 置中 */
+    }
+
+    /* 背景圖片：讓它撐滿容器 */
+    .game-bg-img {
+      width: 100%;
+      display: block;
+      border-radius: 20px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    }
+
+    /* 通用定位樣式：所有文字框的基礎 */
+    .overlay-box {
+      position: absolute;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      padding: 5px;
+      font-weight: bold;
+      line-height: 1.3;
+      word-break: break-word;
+      /* 防止文字太長破版 */
+    }
+
+    /* (A) 上方故事區 (白色長方框) */
+    .story-overlay {
+      top: 6%;
+      left: 22%;
+      width: 56%;
+      height: 18%;
+      font-size: 0.8rem;
+      /* 字體小一點以免塞不下 */
+      overflow-y: auto;
+      /* 文字太長可以捲動 */
+      color: #5d4037;
+      /* 深咖啡色 */
+      align-items: flex-start;
+      /* 文字靠上對齊 */
+      padding-top: 10px;
+    }
+
+    /* (B) 中間問題區 (中央大圓) */
+    .question-overlay {
+      top: 35%;
+      left: 36%;
+      width: 28%;
+      height: 28%;
+      font-size: 0.85rem;
+      color: #d84315;
+      /* 顯眼的橘紅色 */
+      padding: 10px;
+    }
+
+    /* (C) 選項按鈕通用樣式 (四個小圓) */
+    .option-btn-overlay {
+      width: 17%;
+      height: 17%;
+      font-size: 0.75rem;
+      border-radius: 50%;
+      cursor: pointer;
+      background: rgba(255, 255, 255, 0.3);
+      /* 稍微調高透明度，讓藍色字更清楚 */
+      border: none;
+      /* 👇 修改這裡：改成深藍色，比較顯眼 */
+      color: #0d47a1;
+      font-weight: 800;
+      /* 加粗字體 */
+
+      transition: transform 0.1s, opacity 0.2s;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    }
+
+    .option-btn-overlay:active {
+      transform: scale(0.95);
+      /* 點擊縮小 */
+    }
+
+    .option-btn-overlay:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      background-color: #888;
+      /* 票券不足變灰 */
+      color: #ddd;
+    }
+
+    /* 📍 四個選項座標 (根據圖片微調) */
+    .opt-A {
+      top: 27%;
+      left: 11%;
+    }
+
+    /* 左上 (粉紅) */
+    .opt-B {
+      top: 27%;
+      right: 11%;
+    }
+
+    /* 右上 (綠色) */
+    .opt-C {
+      top: 62%;
+      left: 21%;
+    }
+
+    /* 左下 (黃色) */
+    .opt-D {
+      top: 62%;
+      right: 21%;
+    }
+
+    /* 右下 (紫色) */
+
+    /* 懸浮的票券顯示 (右上角) */
+    .floating-ticket {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      background: rgba(0, 0, 0, 0.7);
+      color: #ffd700;
+      padding: 5px 12px;
+      border-radius: 20px;
+      font-size: 0.9em;
+      z-index: 10;
+      border: 1px solid #ffd700;
+    }
+  </style>
 </head>
-<body class="bg-gray-100 p-6">
 
-    <div class="max-w-md mx-auto bg-white rounded-xl shadow-md overflow-hidden p-6 mt-4">
-        <h2 class="text-2xl font-bold text-center text-gray-800 mb-6">🛡️ 建立冒險小組</h2>
-        
-        <div class="mb-4">
-            <label class="block text-gray-700 text-sm font-bold mb-2" for="groupName">
-                為你們的小組取個響亮的名字吧！
-            </label>
-            <input class="shadow appearance-none border rounded w-full py-3 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-green-400" id="groupName" type="text" placeholder="例如：晨型人俱樂部、期末生存營">
-        </div>
+<body>
+  <div id="loading" class="text-center mt-5">
+    <div class="spinner-border text-light" role="status"></div>
+    <p class="mt-2 text-muted">正在連線至 PersonaPact...</p>
+  </div>
 
-        <div class="mb-6">
-            <label class="block text-gray-700 text-sm font-bold mb-2" for="habitGoal">
-                你自己的專屬習慣目標是？
-            </label>
-            <input class="shadow appearance-none border rounded w-full py-3 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-green-400" id="habitGoal" type="text" placeholder="例如：每天喝水2000cc、背20個單字">
-        </div>
+  <div id="gameListArea" class="hidden">
+    <h4 class="mb-3">📜 我的契約列表</h4>
+    <div id="contractsContainer"></div>
+  </div>
 
-        <button id="submitBtn" class="bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-4 rounded w-full shadow-lg transition duration-200" onclick="submitForm()">
-            ⚔️ 宣告目標，建立小組！
-        </button>
+  <div id="setupFormArea" class="hidden">
+    <div class="card p-4">
+      <h4 class="mb-3">⚙️ 隊長初始設定</h4>
+      <p class="text-muted small">契約: <span id="setupContractName"></span></p>
+      <label class="mt-2">故事風格</label>
+      <select id="inputTheme" class="form-control">
+        <option value="王道熱血奇幻 (預設)">⚔️ 王道熱血奇幻</option>
+        <option value="賽博龐克科幻">🤖 賽博龐克</option>
+        <option value="日式校園異能">🏫 日式校園</option>
+        <option value="克蘇魯神話驚悚">🐙 克蘇魯驚悚</option>
+        <option value="無厘頭爆笑喜劇">🤣 爆笑喜劇</option>
+        <option value="末日殭屍生存">🧟 末日生存</option>
+      </select>
+      <label>隊伍名稱</label>
+      <input type="text" id="inputTeamName" class="form-control" placeholder="例如: 屠龍特攻隊">
+      <label>我想對抗</label>
+      <input type="text" id="inputEnemy" class="form-control" placeholder="例如: 貪吃惡龍">
+      <label>我想獲得</label>
+      <input type="text" id="inputTreasure" class="form-control" placeholder="例如: 傳說中的金蛋">
+
+      <button class="btn btn-main mt-3" onclick="submitSetup()">✨ 啟動遊戲</button>
+      <button class="btn btn-outline-secondary mt-2 w-100" onclick="cancelSetup()">取消</button>
+    </div>
+  </div>
+
+
+  <div id="battleArea" class="hidden">
+
+    <div class="game-board-container">
+
+      <img src="img/Gemini_4sel_forest.png" class="game-bg-img" alt="Game Board">
+
+      <div id="ticketContainer" class="floating-ticket hidden">
+        🎫 <span id="displayTickets">0</span>
+      </div>
+
+      <div id="storyText" class="overlay-box story-overlay">
+        正在讀取冒險故事...
+      </div>
+
+      <div id="questionText" class="overlay-box question-overlay">
+        ...
+      </div>
+
+      <button id="btnOptA" class="overlay-box option-btn-overlay opt-A" onclick="handleOptionClick(0)">A</button>
+      <button id="btnOptB" class="overlay-box option-btn-overlay opt-B" onclick="handleOptionClick(1)">B</button>
+      <button id="btnOptC" class="overlay-box option-btn-overlay opt-C" onclick="handleOptionClick(2)">C</button>
+      <button id="btnOptD" class="overlay-box option-btn-overlay opt-D" onclick="handleOptionClick(3)">D</button>
+
     </div>
 
-    <script>
-        // 🔑 啟動 LIFF 應用程式 (請把下方替換成你剛剛拿到的 LIFF ID)
-        const myLiffId = "2008941439-M9ODe8F0";
+    <p id="mbtiStatus" class="text-center text-success mt-3 hidden" style="font-weight:bold; font-size: 1.1em;">
+      ✅ 已完成今日選擇
+    </p>
 
-        // 初始化 LIFF
-        liff.init({ liffId: myLiffId })
-            .then(() => {
-                if (!liff.isLoggedIn()) {
-                    liff.login();
-                }
-            })
-            .catch((err) => {
-                console.error("LIFF 初始化失敗", err);
-            });
+    <button class="btn btn-outline-light mt-3 w-100" onclick="backToList()">🔙 回到列表</button>
+  </div>
 
-        // 玩家按下按鈕後執行的功能
-        function submitForm() {
-            const groupName = document.getElementById('groupName').value;
-            const habitGoal = document.getElementById('habitGoal').value;
 
-            // 簡單防呆：確保玩家有填寫資料
-            if(groupName === "" || habitGoal === "") {
-                alert("勇者，請填寫完整的小組名稱與目標！");
-                return;
-            }
+  <script>
+    // ==========================================
+    // ⚠️ 設定區：請確認 GAS 網址與 LIFF ID
+    // ==========================================
+    const GAS_API_URL = "https://script.google.com/macros/s/AKfycbwVFtnp58L98sIVcoqf60ZpU6vqVmblk-eDcD3l7Hi-PjGWPtHVhKwe0pzIbisfB4ge/exec";
+    const LIFF_ID = "2008941439-M9ODe8F0";
 
-            // 組合給機器人看的神奇指令
-            const commandText = "#開團 " + groupName + " | " + habitGoal;
+    // 全域變數
+    let userProfile = null;
+    let currentSetupContractId = null;
+    let currentContractId = null;
+    let currentOptionsData = []; // 暫存選項內容
 
-            // 讓 LIFF 代替玩家在聊天室送出訊息
-            liff.sendMessages([
-                {
-                    type: 'text',
-                    text: commandText
-                }
-            ]).then(() => {
-                // 訊息送出後，自動關閉 LIFF 網頁，回到 LINE 聊天室
-                liff.closeWindow();
-            }).catch((err) => {
-                console.error("發送訊息失敗", err);
-                alert("發生錯誤，請稍後再試！");
-            });
+    // 1. 初始化與主程式
+    async function main() {
+      try {
+        await liff.init({ liffId: LIFF_ID });
+
+        if (!liff.isLoggedIn()) {
+          liff.login({ redirectUri: window.location.href });
+          return;
         }
-    </script>
+
+        userProfile = await liff.getProfile();
+
+        // 偵測網址參數
+        const urlParams = new URLSearchParams(window.location.search);
+        const targetContractId = urlParams.get('contractId');
+
+        if (targetContractId) {
+          console.log("偵測到指定 ID:", targetContractId);
+          fetchContracts(targetContractId);
+        } else {
+          console.log("無指定 ID，正常載入列表");
+          fetchContracts();
+        }
+
+      } catch (err) {
+        alert("啟動失敗: " + err);
+      }
+    }
+
+    // 2. 抓取列表並分流
+    async function fetchContracts(autoOpenId = null) {
+      try {
+        const response = await fetch(GAS_API_URL, {
+          method: "POST",
+          body: JSON.stringify({ action: "get_user_contracts", userId: userProfile.userId })
+        });
+        const result = await response.json();
+
+        if (result.success) {
+          renderList(result.games);
+        } else {
+          document.getElementById('contractsContainer').innerHTML = `<p class="text-danger">${result.message}</p>`;
+        }
+
+        // 自動跳轉邏輯
+        if (autoOpenId && result.success) {
+          const targetGame = result.games.find(g => g.contractId === autoOpenId);
+
+          if (targetGame) {
+            document.getElementById('loading').classList.add('hidden');
+
+            if (targetGame.status === "RUNNING") {
+              // 遊戲進行中 -> 進遊戲
+              enterGame(targetGame.contractId, targetGame.contractName);
+            } else {
+              // 遊戲未開始 -> 判斷身份
+              if (targetGame.role === "Admin") {
+                openSetup(targetGame.contractId, targetGame.contractName);
+              } else {
+                alert("⏳ 隊長尚未完成「初始設定」，請稍後再來！");
+                document.getElementById('gameListArea').classList.remove('hidden');
+              }
+            }
+          } else {
+            alert("❌ 找不到該契約資料，或您未加入。");
+            document.getElementById('loading').classList.add('hidden');
+            document.getElementById('gameListArea').classList.remove('hidden');
+          }
+        } else {
+          // 正常顯示列表
+          document.getElementById('loading').classList.add('hidden');
+          document.getElementById('gameListArea').classList.remove('hidden');
+        }
+
+      } catch (e) {
+        alert("連線錯誤: " + e);
+        document.getElementById('loading').classList.add('hidden');
+      }
+    }
+
+    // 渲染契約列表
+    function renderList(games) {
+      const container = document.getElementById('contractsContainer');
+      container.innerHTML = "";
+
+      if (games.length === 0) {
+        container.innerHTML = '<p class="text-muted text-center">您目前沒有 Game_A 的契約。</p>';
+        return;
+      }
+
+      games.forEach(game => {
+        let actionHtml = "";
+        if (game.status === "RUNNING") {
+          actionHtml = `<button class="btn btn-game" onclick="enterGame('${game.contractId}', '${game.contractName}')">🎮 進入遊戲</button>`;
+        } else if (game.status === "PENDING") {
+          if (game.role === "Admin") {
+            actionHtml = `<button class="btn btn-main" onclick="openSetup('${game.contractId}', '${game.contractName}')">⚙️ 初始設定</button>`;
+          } else {
+            actionHtml = `<button class="btn btn-secondary" disabled>⏳ 等待隊長設定...</button>`;
+          }
+        }
+
+        const card = `
+          <div class="card p-3">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+              <h5 class="m-0">${game.contractName}</h5>
+              <span class="status-badge">${game.status}</span>
+            </div>
+            ${actionHtml}
+          </div>
+        `;
+        container.innerHTML += card;
+      });
+    }
+
+    // --- 設定功能區 ---
+    function openSetup(contractId, name) {
+      currentSetupContractId = contractId;
+      document.getElementById('setupContractName').innerText = name;
+      document.getElementById('gameListArea').classList.add('hidden');
+      document.getElementById('setupFormArea').classList.remove('hidden');
+    }
+
+    function cancelSetup() {
+      document.getElementById('gameListArea').classList.remove('hidden');
+      document.getElementById('setupFormArea').classList.add('hidden');
+    }
+
+    async function submitSetup() {
+      const teamName = document.getElementById('inputTeamName').value;
+      const enemy = document.getElementById('inputEnemy').value;
+      const treasure = document.getElementById('inputTreasure').value;
+      const theme = document.getElementById('inputTheme').value;
+
+      if (!teamName || !enemy || !treasure) { alert("請填寫完整！"); return; }
+
+      const btn = document.querySelector('#setupFormArea .btn-main');
+      btn.innerText = "處理中...";
+      btn.disabled = true;
+
+      try {
+        const payload = {
+          action: "create_team",
+          userId: userProfile.userId,
+          contractId: currentSetupContractId,
+          teamName: teamName,
+          enemyName: enemy,
+          treasureName: treasure,
+          storyTheme: theme
+        };
+
+        const response = await fetch(GAS_API_URL, { method: "POST", body: JSON.stringify(payload) });
+        const result = await response.json();
+
+        if (result.success) {
+          alert("🎉 " + result.message);
+          location.reload();
+        } else {
+          alert("❌ " + result.message);
+          btn.disabled = false;
+          btn.innerText = "✨ 啟動遊戲";
+        }
+      } catch (e) {
+        alert("錯誤: " + e);
+        btn.disabled = false;
+        btn.innerText = "✨ 啟動遊戲";
+      }
+    }
+
+    // ==========================================
+    // 🆕 核心遊戲區 (圖片背景版)
+    // ==========================================
+
+    // 進入遊戲畫面
+    async function enterGame(contractId, contractName) {
+      document.getElementById('gameListArea').classList.add('hidden');
+      document.getElementById('battleArea').classList.remove('hidden');
+
+      window.currentContractId = contractId;
+
+      // 初始化 UI 文字
+      document.getElementById('ticketContainer').classList.add('hidden');
+      document.getElementById('storyText').innerText = "正在讀取冒險紀錄...";
+      document.getElementById('questionText').innerText = "...";
+
+      // 隱藏按鈕，避免看到舊資料
+      ['btnOptA', 'btnOptB', 'btnOptC', 'btnOptD'].forEach(id => {
+        document.getElementById(id).style.opacity = "0";
+      });
+
+      // 呼叫後端
+      fetchGameState(contractId);
+    }
+
+    // 讀取最新狀態 (修正版：已玩過時保留灰色選項)
+    async function fetchGameState(contractId) {
+      console.log("正在讀取契約數據 ID:", contractId);
+
+      try {
+        const response = await fetch(GAS_API_URL, {
+          method: "POST",
+          body: JSON.stringify({
+            action: "get_game_state",
+            contractId: contractId,
+            userId: userProfile.userId
+          })
+        });
+        const result = await response.json();
+
+        if (result.success) {
+          // 1. 更新文字
+          document.getElementById('storyText').innerText = result.yesterdaySummary;
+          document.getElementById('questionText').innerText = result.mbti.question;
+
+          // 記錄題目類型與選項內容
+          window.currentQuestionType = result.mbti.type;
+          currentOptionsData = result.mbti.options;
+
+          // 2. 更新票券
+          const ticketEl = document.getElementById('displayTickets');
+          const ticketContainer = document.getElementById('ticketContainer');
+          if (ticketEl) ticketEl.innerText = result.userTickets;
+          if (ticketContainer) ticketContainer.classList.remove('hidden');
+
+          // 3. 判斷按鈕狀態
+          const statusText = document.getElementById('mbtiStatus');
+          const btnIds = ['btnOptA', 'btnOptB', 'btnOptC', 'btnOptD'];
+
+          if (result.hasPlayed) {
+            // A. 已玩過 -> ⚠️ 修改這裡：保留文字，但變灰
+            statusText.innerText = "✅ 您今日已選擇：\n" + result.myChoice;
+            statusText.classList.remove('hidden');
+
+            btnIds.forEach((id, index) => {
+              const btn = document.getElementById(id);
+              // 把文字填回去
+              btn.innerText = currentOptionsData[index];
+              // 鎖定
+              btn.disabled = true;
+              // 設定為半透明灰色
+              btn.style.opacity = "0.6";
+              btn.style.backgroundColor = "rgba(0,0,0,0.1)"; // 背景變暗
+              btn.style.color = "#777"; // 文字變灰
+            });
+
+          } else {
+            // B. 未玩過 -> 顯示選項
+            statusText.classList.add('hidden');
+
+            btnIds.forEach((id, index) => {
+              const btn = document.getElementById(id);
+              btn.style.opacity = "1";
+              btn.innerText = currentOptionsData[index]; // 填入選項文字
+              btn.style.color = "#0d47a1"; // 恢復原本的深藍色
+              btn.style.backgroundColor = "rgba(255, 255, 255, 0.3)"; // 恢復原本背景
+
+              // 檢查票券
+              if (result.userTickets < 1) {
+                btn.disabled = true;
+                btn.innerText = "🔒 票券不足";
+                btn.style.backgroundColor = "rgba(0,0,0,0.5)";
+                btn.style.color = "#ddd";
+              } else {
+                btn.disabled = false;
+              }
+            });
+          }
+
+        } else {
+          alert("讀取失敗：" + result.message);
+          document.getElementById('storyText').innerText = "讀取失敗：" + result.message;
+        }
+      } catch (e) {
+        console.error("狀態讀取發生錯誤", e);
+        alert("連線錯誤: " + e);
+      }
+    }
+
+    // 處理選項點擊 (中介函式)
+    function handleOptionClick(index) {
+      if (!currentOptionsData || !currentOptionsData[index]) return;
+      const choiceText = currentOptionsData[index];
+      const btnId = ['btnOptA', 'btnOptB', 'btnOptC', 'btnOptD'][index];
+      const btnElement = document.getElementById(btnId);
+
+      submitChoice(choiceText, index, btnElement);
+    }
+
+    // 送出選擇 (修正版：成功後不隱藏，改為變灰)
+    async function submitChoice(choiceText, index, btnElement) {
+      // 鎖定所有按鈕
+      const btnIds = ['btnOptA', 'btnOptB', 'btnOptC', 'btnOptD'];
+      btnIds.forEach(id => document.getElementById(id).disabled = true);
+
+      const originalText = btnElement.innerText;
+      btnElement.innerText = "⏳...";
+
+      try {
+        const payload = {
+          action: "submit_mbti",
+          userId: userProfile.userId,
+          contractId: window.currentContractId,
+          choice: choiceText,
+          choiceIndex: index,
+          questionType: window.currentQuestionType
+        };
+
+        const response = await fetch(GAS_API_URL, { method: "POST", body: JSON.stringify(payload) });
+        const result = await response.json();
+
+        if (result.success) {
+          // ⚠️ 修改這裡：成功後不要隱藏 (opacity=0)，而是變灰 (opacity=0.6)
+          btnIds.forEach((id, idx) => {
+            const btn = document.getElementById(id);
+            btn.style.opacity = "0.6";
+            btn.style.backgroundColor = "rgba(0,0,0,0.1)";
+            btn.style.color = "#777";
+
+            // 把文字還原 (因為剛剛被改成 ⏳... 了)
+            // 這裡從全域變數 currentOptionsData 抓回原本的文字
+            if (currentOptionsData && currentOptionsData[idx]) {
+              btn.innerText = currentOptionsData[idx];
+            }
+          });
+
+          const status = document.getElementById('mbtiStatus');
+          status.innerText = "✅ 記錄成功！\n選擇：" + choiceText;
+          status.classList.remove('hidden');
+
+          if (result.remainingTickets !== undefined) {
+            document.getElementById('displayTickets').innerText = result.remainingTickets;
+          }
+        } else {
+          alert("失敗: " + result.message);
+          btnElement.innerText = originalText;
+          // 失敗時解鎖，且恢復顏色
+          btnIds.forEach(id => {
+            const btn = document.getElementById(id);
+            btn.disabled = false;
+          });
+        }
+      } catch (e) {
+        alert("連線錯誤");
+        btnElement.innerText = originalText;
+        btnIds.forEach(id => document.getElementById(id).disabled = false);
+      }
+    }
+
+    // 🔙 回到列表 (清除參數並切換介面)
+    function backToList() {
+      // 1. 清除網址參數
+      const url = new URL(window.location);
+      url.searchParams.delete('contractId');
+      window.history.replaceState({}, '', url);
+
+      // 2. 切換介面
+      document.getElementById('battleArea').classList.add('hidden');
+      document.getElementById('gameListArea').classList.remove('hidden');
+
+      // 3. 清空全域變數
+      window.currentContractId = null;
+    }
+
+    main();
+  </script>
 </body>
+
 </html>
